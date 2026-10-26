@@ -243,6 +243,16 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
 #zoomCv{width:100%;max-width:420px;aspect-ratio:4/3;border-radius:10px;background:#000}
 .tk-cam{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(200px,35vw);border-radius:10px;border:2px solid var(--accent);z-index:72;background:#000}
 .privacy{margin:0;font-size:13.5px;background:color-mix(in srgb,var(--ok) 10%,var(--surface-2));border:1px solid color-mix(in srgb,var(--ok) 40%,var(--line));border-radius:10px;padding:10px 12px;max-width:80ch}
+.mathsteps{display:grid;gap:8px}
+.mstep{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--wave);border-radius:8px;padding:8px 10px;font-size:13px;display:grid;gap:4px;min-width:0}
+.mstep.vert{border-left-color:var(--vertex)}
+.mstep.stat{border-left-color:var(--accent)}
+.mstep>b{font-size:13px}
+.mstep .eqn{display:block;font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border-radius:6px;padding:4px 8px;overflow-wrap:anywhere}
+.mstep i{font-style:normal;font-weight:700;color:var(--ink)}
+details.mathbox{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+details.mathbox>summary{cursor:pointer;padding:10px 14px;font-weight:700}
+details.mathbox>.mathsteps{padding:0 14px 14px}
 .linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
 /* stress task overlay: identical layout in both phases keeps screen brightness matched */
 #task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
@@ -428,6 +438,14 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
     </details>
 
     <details class="box">
+      <summary>Show the math</summary>
+      <div class="boxbody">
+        <p class="hint">How the computer solves the two equations for the last 30 seconds, with the real numbers plugged in. Updates as the recording plays (pause to read).</p>
+        <div class="mathsteps" id="mathLive">Press play to start.</div>
+      </div>
+    </details>
+
+    <details class="box">
       <summary>Model lab: fit it yourself</summary>
       <div class="boxbody">
         <label class="check"><input type="checkbox" id="manual"> Use my sliders instead of the auto-fit</label>
@@ -473,11 +491,18 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
     </ol>
     <p class="hint">Timings come from the dataset's protocol. Event markers in each recording show when each phase began.</p>
   </section>
+  <section class="card" id="pipeCard">
+    <h2>How the 35 participants' numbers were used</h2>
+    <p>Every result on this page comes from the same chain of steps. Each step below uses real numbers, following one participant as the example; choose who to follow here.</p>
+    <label class="who" for="pipeWho" style="font-weight:500">Follow participant <select id="pipeWho"></select></label>
+    <div class="mathsteps" id="pipeSteps"><p class="hint">Fitting waves for every participant…</p></div>
+  </section>
   <section class="card">
     <h2>Does stress change the pupil wave?</h2>
     <p>Each participant's recording was cut into overlapping 30-second windows. In each window the <span class="term" data-g="Hippus">hippus</span> signal was fitted with <span class="mono">y = A·sin(B(t − C)) + D</span>, and every constriction trough with <span class="mono">y = a(t − h)² + k</span>. Medians per phase are compared with a <span class="term" data-g="Paired t-test">paired t-test</span>. The headline number is <b>Stress minus <span class="term" data-g="Working baseline">Working baseline</span></b>, because both use the same screen and light. Each card also gives the <span class="term" data-g="Effect size (Cohen's d)">effect size d</span> and a <span class="term" data-g="95% confidence interval">95% confidence interval</span>.</p>
     <div class="progress" id="rProgress"><span id="rProgText">Analyzing participants…</span><div class="r2bar"><div id="rProgFill"></div></div></div>
     <div class="stats" id="hypStats"></div>
+    <details class="mathbox"><summary>Show the math: the paired t-test for wave constant B, step by step</summary><div class="mathsteps" id="tMath"></div></details>
   </section>
   <section class="card" id="lightCard">
     <h2>Why is the resting pupil the largest?</h2>
@@ -658,6 +683,7 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
     <p class="hint">Each grey dot is one participant's change from Working baseline to Stress. The highlighted marker is the change from the calm to the stressed video.</p>
     <canvas id="meStrips" aria-label="Your change compared with each study participant"></canvas>
     <p class="hint" id="meQuality"></p>
+    <details class="mathbox"><summary>Show the math: how these numbers were calculated</summary><div class="mathsteps" id="meMath"></div></details>
   </section>
       </div>
       <div class="wlock"><p style="margin:0 0 8px">Your result appears here after both videos are scanned.</p><button class="btn" id="meShowEx">Preview an example result from the study</button></div>
@@ -894,7 +920,7 @@ function fitSine(S, i0, i1, fmin=0.10, fmax=1.00){
   const A = Math.hypot(best.a, best.b), phi = Math.atan2(best.b, best.a), T = 2*Math.PI/best.w;
   let Cs = (-phi/best.w) % T; if (Cs < 0) Cs += T;
   let D = 0, dc = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { D += S.x[i]; dc++; }
-  return {A, B: best.w, f: best.f, C: Cs, T, r2: Sxx>0 ? best.red/Sxx : 0, m, D: D/dc};
+  return {A, B: best.w, f: best.f, C: Cs, T, r2: Sxx>0 ? best.red/Sxx : 0, m, D: D/dc, sa: best.a, cb: best.b, phi, n: c};
 }
 function r2For(S, i0, i1, A, B, Cs){
   let m=0,c=0; for (let i=i0;i<i1;i++) if (S.valid[i]) { m+=S.hp[i]; c++; }
@@ -917,7 +943,7 @@ function troughs(S, i0, i1){
     for (let j=i-H;j<=i+H;j++){ const t=(j-i)/FS, y=S.sm[j]; St2+=t*t; St4+=t*t*t*t; Sy+=y; Sty+=t*y; St2y+=t*t*y; n++; }
     const b = Sty/St2, det = St4*n - St2*St2, a = (St2y*n - St2*Sy)/det, c = (St4*Sy - St2*St2y)/det;
     if (a <= 0) continue;
-    out.push({i, a, h: i/FS - b/(2*a), k: c - b*b/(4*a), drop: pk-v});
+    out.push({i, a, h: i/FS - b/(2*a), k: c - b*b/(4*a), drop: pk-v, pb: b, pc: c});
     i += W;
   }
   return out;
@@ -1263,6 +1289,7 @@ function updateReadouts(now, dA, dB, kA, kB){
     $("qa").textContent = am.toFixed(2)+" mm/s²"; $("q2a").textContent = (2*am).toFixed(2)+" mm/s²";
   } else { $("eqQuad").innerHTML = "y = a(t − h)² + k <span style='color:var(--muted)'>· no trough in window</span>"; $("qa").textContent = "–"; $("q2a").textContent = "–"; }
   $("qn").textContent = (tr.length * 60/WIN).toFixed(0);
+  renderMathLive(now, S, f, tr);
   // stress index vs this person's working baseline (30 = same as Working)
   const R = baseRef(S);
   if (f && isFinite(R.diam)){
@@ -1274,6 +1301,37 @@ function updateReadouts(now, dA, dB, kA, kB){
     $("lvl").textContent = lv[0]; $("lvl").style.color = lv[1];
     $("needle").style.transform = `rotate(${-90 + st.stress*1.8}deg)`;
   }
+}
+// "Show the math": the live fit's own numbers, substituted step by step into the equations.
+let lastMath = 0;
+const fx = (v, d) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+const px_ = (v, d) => v < 0 ? `(${fx(v, d)})` : fx(v, d);   // parenthesize negatives before squaring
+function renderMathLive(now, S, f, tr){
+  const box = $("mathLive"); if (!box || !box.closest("details").open || now - lastMath < 500) return; lastMath = now;
+  if (st.compare){ box.innerHTML = "<p class='hint'>Turn off side-by-side compare to see the step-by-step math.</p>"; return; }
+  if (!f){ box.innerHTML = "<p class='hint'>Not enough clean signal in the last 30 seconds to fit a wave yet.</p>"; return; }
+  const i1 = Math.round(st.t*FS);
+  // spot-check the wave at three moments spread across the window, not just one
+  const checks = [25, 15, 5].map(back => {
+    const i = Math.max(0, i1 - back*FS), t = i/FS, ang = f.B*(t - f.C);
+    return {t, ang, pred: f.A*Math.sin(ang), wob: S.valid[i] ? S.hp[i] - f.m : NaN};
+  }).filter(q => isFinite(q.wob));
+  const ex = checks[0] || {t: i1/FS, ang: 0, pred: 0, wob: 0};
+  const avgMiss = checks.length ? checks.reduce((a, q) => a + Math.abs(q.wob - q.pred), 0)/checks.length : 0;
+  let h = `
+  <div class="mstep"><b>1 · Find the midline D</b>Average of the ${f.n} pupil readings in the last 30 s (10 per second):<span class="eqn">D = (sum of readings) ÷ ${f.n} = <i>${f.D.toFixed(3)} mm</i></span></div>
+  <div class="mstep"><b>2 · Remove the slow drift</b>Subtract a 20-second running average so only the fast wobble is left. Right now: reading ${S.sm[i1].toFixed(3)} − drift ${S.ma[i1].toFixed(3)} = wobble <i>${fx(S.hp[i1],3)} mm</i></div>
+  <div class="mstep"><b>3 · Find B (how fast it repeats)</b>The computer tries 91 speeds, f = 0.10, 0.11 … 1.00 waves per second, plus a finer search near the best one, and keeps the speed whose wave misses the data least.<span class="eqn">best f = ${f.f.toFixed(3)} Hz → B = 2π·f = 2π × ${f.f.toFixed(3)} = <i>${f.B.toFixed(3)} rad/s</i></span><span class="eqn">period T = 2π ÷ B = ${(2*Math.PI).toFixed(3)} ÷ ${f.B.toFixed(3)} = <i>${f.T.toFixed(2)} s</i> per wave</span></div>
+  <div class="mstep"><b>4 · Find A and C (height and shift)</b>With B fixed, least squares writes the wobble as a sine part plus a cosine part:<span class="eqn">wobble ≈ a·sin(Bt) + b·cos(Bt), a = ${fx(f.sa,4)}, b = ${fx(f.cb,4)}</span>The Pythagorean theorem combines them into one wave:<span class="eqn">A = √(a² + b²) = √(${px_(f.sa,4)}² + ${px_(f.cb,4)}²) = <i>${f.A.toFixed(4)} mm</i></span><span class="eqn">C = −atan2(b, a) ÷ B, moved into 0…T = <i>${f.C.toFixed(2)} s</i></span></div>
+  <div class="mstep"><b>5 · Check it against the data</b>Plug a time into the wave, for example t = ${ex.t.toFixed(1)} s:<span class="eqn">A·sin(B(t − C)) = ${f.A.toFixed(3)}·sin(${f.B.toFixed(3)} × (${ex.t.toFixed(1)} − ${f.C.toFixed(2)})) = ${f.A.toFixed(3)}·sin(${ex.ang.toFixed(1)} rad) = ${f.A.toFixed(3)} × ${px_(Math.sin(ex.ang),3)} = <i>${fx(ex.pred,3)} mm</i></span>Doing the same at three moments in the window:<span class="eqn">${checks.map(q => `t = ${q.t.toFixed(1)} s: predicted ${fx(q.pred,3)}, measured ${fx(q.wob,3)}, miss ${Math.abs(q.wob - q.pred).toFixed(3)} mm`).join("<br>")}</span>Typical miss: <i>${avgMiss.toFixed(3)} mm</i>. Real pupils wobble irregularly, so a single smooth wave can't hit every point.</div>
+  <div class="mstep"><b>6 · Score the fit</b><span class="eqn">R² = 1 − (sum of squared misses) ÷ (sum of squared wobbles) = <i>${f.r2.toFixed(2)}</i></span>The wave explains about ${Math.round(Math.max(0, f.r2)*100)}% of the wobbling; real pupils are irregular, so 10–40% is normal.</div>`;
+  if (tr.length){
+    const q = tr[tr.length-1], tq = q.i/FS, hr = -q.pb/(2*q.a);
+    h += `
+  <div class="mstep vert"><b>7 · Fit the newest constriction (parabola)</b>Take the 13 readings around the bottom of the dip (±0.6 s), with t measured in seconds from the lowest reading at ${tq.toFixed(1)} s. Least squares gives:<span class="eqn">y = at² + bt + c, a = ${q.a.toFixed(3)}, b = ${fx(q.pb,4)}, c = ${q.pc.toFixed(3)}</span></div>
+  <div class="mstep vert"><b>8 · Complete the square to get the vertex</b><span class="eqn">at² + bt + c = a(t + b/2a)² + c − b²/4a</span><span class="eqn">h = −b ÷ 2a = −(${fx(q.pb,4)}) ÷ (2 × ${q.a.toFixed(3)}) = ${fx(hr,3)} s after the lowest reading → <i>h = ${q.h.toFixed(2)} s</i></span><span class="eqn">k = c − b² ÷ 4a = ${q.pc.toFixed(3)} − ${px_(q.pb,4)}² ÷ (4 × ${q.a.toFixed(3)}) = <i>${q.k.toFixed(3)} mm</i></span><span class="eqn">vertex form: y = ${q.a.toFixed(3)}(t − ${q.h.toFixed(2)})² + ${q.k.toFixed(3)}</span>Acceleration at the turnaround = 2a = 2 × ${q.a.toFixed(3)} = <i>${(2*q.a).toFixed(3)} mm/s²</i></div>`;
+  } else h += `<div class="mstep vert"><b>7 · Constriction parabola</b>No clear dip in the last 30 s yet. A dip counts when the pupil shrinks at least 0.03 mm and then turns back.</div>`;
+  box.innerHTML = h;
 }
 function setTag(id, k){ const el = $(id); if (k < 0) { el.innerHTML = "<i></i>Before recording"; el.style.color = "var(--muted)"; return; } el.style.color = `var(${PH[k].c})`; el.innerHTML = `<i></i><span style="color:var(--ink)">${PH[k].name}</span>`; }
 
@@ -1398,6 +1456,8 @@ function renderResults(){
       <span class="sub">${why}</span></div>`;
   }).join("");
   renderConclusion(tests, all.length);
+  renderTMath(all, tests.B);
+  renderPipeline(all);
   drawResultsChart(all);
   renderLight(all);
   drawOnset();
@@ -1425,6 +1485,55 @@ function renderLight(all){
   $("lightNote").innerHTML = `Rest is ${dR.toFixed(2)} mm larger than Working, the lighting effect. From Working to Stress the pupil changes by ${dW>=0?"+":""}${dW.toFixed(2)} mm on average, and it gets larger under stress for <b>${up} of ${pairs.length}</b> participants. Bars start at ${lo.toFixed(1)} mm so the differences are visible.`;
 }
 // Plain-language answer to the research question, written from the Stress-vs-Working tests.
+// "How the 35 participants' numbers were used": the whole chain from recordings to results, with real
+// numbers at every step and one chosen participant followed through as the worked example.
+function renderPipeline(all){
+  const sel = $("pipeWho");
+  if (!sel.options.length){ all.forEach((o, k) => sel.add(new Option(o.S.id.toUpperCase(), k))); sel.value = Math.max(0, all.findIndex(o => o.S.id === "p07")); sel.onchange = () => renderPipeline(subjects.map(S => ({S, m: metricsOf(S)}))); }
+  const o = all[+sel.value] || all[0], S = o.S, m = o.m, id = S.id.toUpperCase();
+  const totalReadings = all.reduce((a, q) => { let v = 0; for (let i=0;i<q.S.n;i++) v += q.S.valid[i]; return a + v; }, 0);
+  let mine = 0; for (let i=0;i<S.n;i++) mine += S.valid[i];
+  const p2 = S.ph[2], i0 = Math.round(p2.s*FS), i1 = Math.round(p2.e*FS), Bs = [];
+  for (let s=i0; s+WIN*FS<=i1; s+=100){ const f = fitSine(S, s, s+WIN*FS); if (f) Bs.push({t: s/FS, B: f.B}); }
+  const sortedB = Bs.map(b => b.B).sort((a,b) => a-b), atFloor = sortedB.filter(b => b < 2*Math.PI*0.1005).length;
+  const trS1 = troughs(S, i0, i1);
+  let dsum = 0, dn = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { dsum += S.x[i]; dn++; }
+  const cnt = k => all.filter(q => isFinite(stressVal(q.m, k)) && isFinite(q.m[REF][k])).length;
+  const meanOf = (j, k) => { const v = all.map(q => q.m[j][k]).filter(isFinite); return v.reduce((a,b)=>a+b,0)/v.length; };
+  const ups = all.filter(q => stressVal(q.m,"diam") > q.m[REF].diam).length;
+  const sc = all.filter(q => q.S.cdrisc != null && isFinite(stressVal(q.m,"diam") - q.m[REF].diam));
+  const pr = pearson(sc.map(q => +q.S.cdrisc), sc.map(q => stressVal(q.m,"diam") - q.m[REF].diam));
+  const short = all.filter(q => S && q.S.ph.some(p => p.e - p.s < 20)).map(q => q.S.id.toUpperCase());
+  const v2 = v => isFinite(v) ? v.toFixed(2) : "–", v3 = v => isFinite(v) ? v.toFixed(3) : "–";
+  $("pipeSteps").innerHTML = `
+  <div class="mstep stat"><b>1 · The raw material</b>${all.length} participants, each recorded for about ${Math.round(S.dur/60)} minutes. Pupil size was averaged to 10 readings per second, giving <i>${totalReadings.toLocaleString()}</i> usable readings in all (blinks removed). ${id} contributed <i>${mine.toLocaleString()}</i> of them.</div>
+  <div class="mstep stat"><b>2 · Cut each recording into the 6 phases</b>The researchers' event markers say when each phase began. For ${id}:<span class="eqn">${S.ph.map(p => `${p.short}: ${fmtT(p.s)}–${fmtT(p.e)}`).join(" · ")}</span></div>
+  <div class="mstep"><b>3 · Fit a wave every 10 seconds</b>Inside each phase, a 30-second window slides forward 10 seconds at a time, and y = A·sin(B(t − C)) + D is fitted in every window. ${id}'s Stress 1 phase gave <i>${Bs.length} windows</i>. Their B values, smallest to largest:<span class="eqn">${sortedB.map(b => b.toFixed(2)).join(", ")}</span>The <b>median</b> (middle value) is used, not the average, so a few bad windows (a blink, a glance away) can't drag it: <i>B = ${v2(m[2].B)} rad/s</i>. A is found the same way: <i>A = ${v3(m[2].A)} mm</i>.${atFloor ? ` <br><b>Note:</b> ${atFloor} of these windows sit at 0.63, the slowest speed the search tries (0.10 waves per second, B = 2π × 0.10). In those windows the wobble was slower than the search range, so B there is a lower limit, not an exact value. This is a limit of the method worth mentioning in a write-up.` : ""}</div>
+  <div class="mstep vert"><b>4 · Pupil size and constriction vertices</b><span class="eqn">Pupil size = average of the ${dn.toLocaleString()} readings in Stress 1 = <i>${v2(dsum/dn)} mm</i></span><span class="eqn">${trS1.length} constriction dips were found; vertex curvature a = median of their a values = <i>${v2(m[2].qa)} mm/s²</i></span></div>
+  <div class="mstep stat"><b>5 · One number per person per phase</b>Steps 3–4 run for all 6 phases of all ${all.length} people, filling the table at the bottom of this page (${all.length} rows × 6 phases). For the comparison, each person's <b>Stress</b> value is the average of their two stress phases:<span class="eqn">${id}: Stress B = (Stress 1 + Stress 2) ÷ 2 = (${v2(m[2].B)} + ${v2(m[4].B)}) ÷ 2 = <i>${v2(stressVal(m,"B"))} rad/s</i>, compared with Working ${v2(m[REF].B)}</span></div>
+  <div class="mstep stat"><b>6 · Turning 35 people into the results</b>
+    <span class="eqn"><b>Line chart & phase bars:</b> each phase's group mean = sum of everyone's value ÷ number of people. Pupil size: Rest ${v2(meanOf(0,"diam"))}, Work ${v2(meanOf(1,"diam"))}, Stress 1 ${v2(meanOf(2,"diam"))} mm</span>
+    <span class="eqn"><b>Test cards:</b> one difference per person (Stress − Work), then a paired t-test on those ${cnt("B")} differences (see "Show the math" under the cards). The pupil got larger under stress for ${ups} of ${cnt("diam")} people.</span>
+    <span class="eqn"><b>Stress-onset chart:</b> every person's pupil is lined up at the second Stress 1 began, measured against their own last 30 seconds before it, then averaged second by second.</span>
+    <span class="eqn"><b>Resilience scatter:</b> one dot per person (CD-RISC score, change in pupil size); Pearson's r measures how well a straight line fits the ${pr ? pr.n : 0} dots: r = ${pr ? pr.r.toFixed(2) : "–"}</span>
+    <span class="eqn"><b>Conclusion:</b> written from the test cards: "supported" only if A or B rose with p &lt; 0.05.</span></div>
+  <div class="mstep"><b>7 · Missing values</b>A phase gets no wave value when less than 70% of a window is clean signal, and no value at all when the phase wasn't recorded. ${short.length ? `${short.join(", ")} ${short.length === 1 ? "has" : "have"} a phase that is missing or too short (P16's session stopped after 21 minutes). ` : ""}The tests use only people who have both a Working and a Stress value: ${cnt("B")} people for B, ${cnt("A")} for A, ${cnt("diam")} for pupil size.${[cnt("B"), cnt("A"), cnt("diam")].every(n => n === all.length) ? ` That is all ${all.length}: when one stress phase is missing, the Stress value uses the other one alone.` : ` People missing a value are left out of that test only.`}</div>`;
+}
+// The B test from the cards above, worked through with every intermediate number.
+function renderTMath(all, T){
+  const el = $("tMath"); if (!T){ el.innerHTML = "<p class='hint'>Not enough participants yet.</p>"; return; }
+  const rows = all.map(o => ({id: o.S.id.toUpperCase(), s: stressVal(o.m, "B"), w: o.m[REF].B})).filter(r => isFinite(r.s) && isFinite(r.w));
+  const d = rows.map(r => r.s - r.w), n = d.length, mean = d.reduce((a,b)=>a+b,0)/n;
+  const ss = d.reduce((a,b)=>a+(b-mean)**2,0), sd = Math.sqrt(ss/(n-1)), se = sd/Math.sqrt(n), tc = tinv(0.975, n-1);
+  const show = rows.slice(0, 4).map((r,i) => `${r.id}: ${r.s.toFixed(3)} − ${r.w.toFixed(3)} = ${fx(d[i],3)}`).join("<br>");
+  el.innerHTML = `
+  <div class="mstep stat"><b>1 · One difference per person</b>Each person's B under stress (average of Stress 1 and 2) minus their own B in the Working baseline:<span class="eqn">${show}<br>… and so on for all ${n} participants</span>Pairing each person with themselves cancels out differences between people.</div>
+  <div class="mstep stat"><b>2 · Average difference</b><span class="eqn">mean = (sum of the ${n} differences) ÷ ${n} = ${fx(d.reduce((a,b)=>a+b,0),3)} ÷ ${n} = <i>${fx(mean,4)} rad/s</i></span></div>
+  <div class="mstep stat"><b>3 · How spread out the differences are</b><span class="eqn">sd = √( Σ(difference − mean)² ÷ (n − 1) ) = √(${ss.toFixed(4)} ÷ ${n-1}) = <i>${sd.toFixed(4)}</i></span></div>
+  <div class="mstep stat"><b>4 · Standard error of the mean</b><span class="eqn">SE = sd ÷ √n = ${sd.toFixed(4)} ÷ √${n} = ${sd.toFixed(4)} ÷ ${Math.sqrt(n).toFixed(3)} = <i>${se.toFixed(4)}</i></span></div>
+  <div class="mstep stat"><b>5 · The t value</b><span class="eqn">t = mean ÷ SE = ${fx(mean,4)} ÷ ${se.toFixed(4)} = <i>${fx(mean/se,2)}</i>, with df = n − 1 = ${n-1}</span>Looking up t = ${fx(mean/se,2)} in the t-distribution with ${n-1} degrees of freedom gives <i>${fmtP(T.p)}</i>: the chance of a difference this big if stress truly did nothing to B.</div>
+  <div class="mstep stat"><b>6 · Effect size and confidence interval</b><span class="eqn">Cohen's d = mean ÷ sd = ${fx(mean,4)} ÷ ${sd.toFixed(4)} = <i>${fx(mean/sd,2)}</i> (${sizeWord(mean/sd)})</span><span class="eqn">95% CI = mean ± t* × SE = ${fx(mean,4)} ± ${tc.toFixed(3)} × ${se.toFixed(4)} = <i>${fx(mean - tc*se,3)} to ${fx(mean + tc*se,3)}</i></span>t* = ${tc.toFixed(3)} is the t value that leaves 2.5% in each tail for df = ${n-1}. ${mean - tc*se > 0 || mean + tc*se < 0 ? "The whole interval is on one side of zero, so the direction of the change is reliable." : "The interval crosses zero, so the data can't tell whether B goes up or down under stress."}</div>`;
+}
 function renderConclusion(T, nAll){
   const B = T.B, A = T.A, D = T.diam, Q = T.qa;
   const up = t => t && t.p < 0.05 && t.m > 0, down = t => t && t.p < 0.05 && t.m < 0;
@@ -1872,7 +1981,7 @@ async function scanSlot(s){
   const valid = series.filter(x => x != null).length / N;
   if (valid < 0.3){ s.res = null; setStat(s, `The pupil was found in only ${Math.round(valid*100)}% of frames. Re-center the cross on the pupil, match the circle to the iris, and try a brighter, steadier video.`, "bad"); return; }
   const S = prep({id: "me-"+k, markers: [], pupil: series});
-  s.res = {...measure(S, 0, S.n), S, range: [0, S.n], valid, secs: N/FS};
+  s.res = {...measure(S, 0, S.n), S, range: [0, S.n], valid, secs: N/FS, irisPx: 2*R};
   setStat(s, `Done: ${s.res.secs.toFixed(0)} s scanned, pupil found in ${Math.round(valid*100)}% of frames.`, valid < 0.6 ? "bad" : "ok");
   updateWizard();
   if (ME.calm.res && ME.stress.res){
@@ -1924,6 +2033,20 @@ function renderMe(pair){
   $("meEq-calm").textContent = eq(c); $("meEq-stress").textContent = eq(s);
   drawStrips(pop, you, example ? example : "You");
   $("meQuality").textContent = example ? "" : `Tracking quality: pupil found in ${Math.round(c.valid*100)}% (calm) and ${Math.round(s.valid*100)}% (stressed) of frames.${Math.min(c.valid, s.valid) < 0.6 ? " Below 60% the numbers are unreliable; try a steadier, brighter recording." : ""} Phone video sees the pupil less clearly than the study's infrared eye tracker, and the study compares stress with a Working baseline, so treat this as a classroom experiment, not a diagnosis.`;
+  renderMeMath(c, s, you, pop, example);
+}
+// My eye "Show the math": the iris ruler, both wave fits, the changes, and the ranking, with real numbers.
+function renderMeMath(c, s, you, pop, example){
+  const el = $("meMath"); if (!el) return;
+  const ruler = r => { const irisPx = r.irisPx, pupPx = r.diam/IRIS_MM*irisPx; return `${pupPx.toFixed(1)} px ÷ ${irisPx.toFixed(1)} px × 11.7 mm = <i>${r.diam.toFixed(2)} mm</i>`; };
+  const wave = (lab, r) => r.fit ? `${lab}: best speed f = ${r.fit.f.toFixed(3)} Hz → B = 2π × ${r.fit.f.toFixed(3)} = <i>${r.fit.B.toFixed(2)} rad/s</i>, one wave every 2π ÷ B = ${r.fit.T.toFixed(1)} s; height A = √(a² + b²) = √(${px_(r.fit.sa,3)}² + ${px_(r.fit.cb,3)}²) = <i>${r.fit.A.toFixed(3)} mm</i>` : `${lab}: no reliable wave fit`;
+  const chg = (lab, a, b, u, dec) => isFinite(a) && isFinite(b) ? `${lab}: ${b.toFixed(dec)} − ${a.toFixed(dec)} = <i>${fx(b-a,dec)} ${u}</i> (${fx((b-a)/a*100,1)}% change)` : `${lab}: not enough data`;
+  const vals = pop.map(p => p.diam).filter(isFinite), below = vals.filter(x => x < you.diam).length;
+  el.innerHTML = `
+  <div class="mstep stat"><b>1 · Pixels to millimeters (the iris ruler)</b>${example ? "The study's eye tracker measured millimeters directly, so this step isn't needed for the example. For your videos, the iris (about 11.7 mm across in almost every adult) is the ruler:<span class='eqn'>pupil size (mm) = pupil width (px) ÷ iris width (px) × 11.7 mm</span>" : `The iris is about 11.7 mm across in almost every adult, so it converts pixels to millimeters. Average pupil size in each video:<span class="eqn">Calm: ${ruler(c)}</span><span class="eqn">Stressed: ${ruler(s)}</span>`}</div>
+  <div class="mstep"><b>2 · Fit y = A·sin(B(t − C)) + D to each recording</b>Same method as the study: remove the slow drift, try every speed from 0.10 to 1.00 waves per second, keep the best, then solve for the height (the median of 30-second windows is reported above).<span class="eqn">${wave("Calm", c)}</span><span class="eqn">${wave("Stressed", s)}</span></div>
+  <div class="mstep"><b>3 · How much each number changed</b><span class="eqn">${chg("Pupil size", c.diam, s.diam, "mm", 2)}</span><span class="eqn">${chg("Amplitude A", c.A, s.A, "mm", 3)}</span><span class="eqn">${chg("Wave constant B", c.B, s.B, "rad/s", 2)}</span></div>
+  <div class="mstep stat"><b>4 · Ranking against the study</b>Each study participant also has a change, from Working baseline to Stress. Count how many are smaller than ${example ? "this one" : "yours"}:<span class="eqn">${below} of ${vals.length} participants changed less → ${below} ÷ ${vals.length} × 100 = <i>${vals.length ? Math.round(below/vals.length*100) : 0}%</i></span></div>`;
 }
 function drawMeWave(cv, r, col){
   sizeCanvas(cv);
