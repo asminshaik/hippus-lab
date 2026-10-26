@@ -1,0 +1,2196 @@
+<title>Hippus Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: PhET-style simulation — a stage (eye + strip chart + transport) beside an accordion control panel; tabs swap to Results and Data views. */
+/* Dark-only by request: one dark palette for every viewer, whatever their system theme. */
+:root{
+  --bg:#0B1017; --surface:#141B25; --surface-2:#1A2330; --ink:#E6EBF2; --muted:#93A0B2; --line:#263142;
+  --accent:#6F98FF; --accent-soft:#1D2A47; --accent-ink:#0B1220;
+  --wave:#FF9B4E; --vertex:#B985FF; --stage:#0F151E; --grid:#1C2633;
+  --rest:#3CC5AE; --work:#7FA0E8; --stress:#FF6B5F; --recov:#7CCB6C;
+  --ok:#4CC488; --warn:#F0B53A; --bad:#FF6B5F;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r:10px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:10px 0;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand svg{flex:none}
+.brand h1{font-family:var(--f-display);font-size:22px;margin:0;letter-spacing:-.01em}
+.brand small{display:block;color:var(--muted);font-size:12px;line-height:1.2}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.show-sm{display:none}
+@media (max-width:480px){.tabs button{padding:6px 10px;font-size:14px}.hide-sm{display:none}.show-sm{display:inline}}
+.tabs button{white-space:nowrap;flex:none;border:0;background:none;padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.who{display:flex;align-items:center;gap:8px;font-weight:600}
+.pinfo{font-size:12.5px;font-weight:500;color:var(--muted);max-width:260px;line-height:1.3}
+.pinfo b{color:var(--ink);font-family:var(--f-mono)}
+.progress{display:grid;gap:8px;justify-items:start;color:var(--muted);padding:24px 0}
+.progress .r2bar{width:min(360px,100%)}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+
+/* sim layout */
+.sim{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:980px){.sim{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--stage);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px;min-width:0}
+.eyes{position:relative;display:grid;grid-template-columns:1fr;gap:12px;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;border-radius:10px;padding:12px}
+.eyes.compare{grid-template-columns:1fr 1fr}
+.eyebox{position:relative;min-width:0}
+.eyebox canvas{display:block;width:100%;height:clamp(180px,30vw,300px)}
+.eyes.compare .eyebox canvas{height:clamp(150px,22vw,250px)}
+.eyetag{position:absolute;top:6px;left:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line)}
+.pill i{width:9px;height:9px;border-radius:50%;display:inline-block;background:currentColor}
+.eyeread{position:absolute;right:6px;bottom:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 10px;text-align:right}
+.eyeread b{font-family:var(--f-mono);font-size:20px;font-variant-numeric:tabular-nums}
+.eyeread span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lost{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px dashed var(--muted);color:var(--muted);font-size:12px;padding:3px 10px;border-radius:6px}
+
+.graphbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px 8px;min-width:0}
+.graphhead{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.graphhead h3{margin:0;font-size:14px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+#trace{display:block;width:100%;height:190px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:4px 10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+
+.transport{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tbtns{display:flex;gap:6px;align-items:center}
+.round{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;display:grid;place-items:center}
+.round.big{width:48px;height:48px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.round svg{width:18px;height:18px;fill:currentColor}
+.tl{min-width:0}
+.tlrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+#timeline{display:block;width:100%;height:56px;cursor:pointer;touch-action:none;border-radius:6px}
+.tbtns{flex-wrap:wrap}
+
+/* panel */
+.panel{display:grid;gap:10px;min-width:0}
+details.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+details.box>summary{list-style:none;cursor:pointer;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+details.box>summary::-webkit-details-marker{display:none}
+details.box>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details.box[open]>summary::after{transform:rotate(-135deg)}
+.boxbody{padding:0 14px 14px;display:grid;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip i{width:8px;height:8px;border-radius:50%}
+.chip[aria-current="true"]{border-color:currentColor;background:var(--accent-soft)}
+.eq{font-family:var(--f-mono);font-size:13px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:2;overflow-wrap:anywhere}
+.eq .v{display:inline-block;white-space:nowrap;padding:0 5px;border-radius:5px;font-weight:600}
+.eq .vw{background:color-mix(in srgb,var(--wave) 18%,transparent);color:var(--wave)}
+.eq .vv{background:color-mix(in srgb,var(--vertex) 18%,transparent);color:var(--vertex)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.ctl{display:grid;gap:4px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+.ctl label output{font-family:var(--f-mono);font-weight:500;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.gauge{display:grid;justify-items:center;gap:2px}
+.gauge svg{width:100%;max-width:240px;height:auto}
+.gauge .score{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1}
+.gauge .lvl{font-size:13px;font-weight:700}
+.r2bar{height:8px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.r2bar div{height:100%;background:var(--accent);width:0;transition:width .2s}
+
+/* results / about */
+.page{max-width:1100px;margin:0 auto;display:grid;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.card h2{font-family:var(--f-display);font-size:22px;margin:0 0 6px;text-wrap:balance}
+.card h3{margin:0 0 6px;font-size:16px}
+.card p{margin:0 0 8px;max-width:72ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.stat .lab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.stat .num{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1.1}
+.stat .sub{font-size:13px;color:var(--muted)}
+.gtools{display:grid;gap:10px;margin-top:6px}
+.gtools input{width:100%;max-width:520px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.gfig{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:760px){.gfig{grid-template-columns:minmax(0,1fr)}}
+.gfig svg{width:100%;max-width:380px;height:auto;display:block;margin:4px 0}
+.gfig p{margin:4px 0 0}
+.glist{display:grid;gap:16px}
+.gcat h3{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
+.gterms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.gterms{grid-template-columns:minmax(0,1fr)}}
+.gterm{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;gap:4px;align-content:start}
+.gterm dt{font-weight:700;font-size:15px}
+.gterm dt small{font-weight:500;color:var(--muted);font-size:12.5px;margin-left:6px}
+.gterm dd{margin:0;font-size:14px}
+.gterm .ex{color:var(--muted);font-size:13px}
+.gterm .ex b{color:var(--ink);font-weight:600}
+.phases{list-style:none;margin:10px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.phases{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.phases{grid-template-columns:minmax(0,1fr)}}
+.phases li{background:var(--surface-2);border:1px solid var(--line);border-top:4px solid var(--pc);border-radius:10px;padding:10px 12px;display:grid;gap:4px;align-content:start}
+.phases .ph-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.phases .ph-head b{color:var(--pc);font-size:15px}
+.phases .ph-head span{font-size:12px;color:var(--muted)}
+.phases p{margin:0;font-size:13.5px}
+.explain{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;margin:10px 0 12px}
+@media (max-width:760px){.explain{grid-template-columns:minmax(0,1fr)}}
+.why ul{margin:0 0 10px;padding-left:18px;display:grid;gap:6px;max-width:65ch}
+.lightviz{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.lbar{display:grid;grid-template-columns:78px minmax(0,1fr) 62px;gap:8px;align-items:center;font-size:13px;margin-bottom:6px}
+.lbar .track{height:14px;background:var(--bg);border-radius:4px;overflow:hidden}
+.lbar .fill{height:100%;border-radius:4px}
+.lbar .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.verdict{display:inline-flex;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:700;width:max-content}
+.verdict.yes{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.verdict.no{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.rowhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:10px}
+#rchart{display:block;width:100%;height:320px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr.mean td{font-weight:700;border-top:2px solid var(--line)}
+ol.steps{margin:0;padding-left:20px;display:grid;gap:8px;max-width:75ch}
+.cite{font-size:13px;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:10px 12px;border:1px solid var(--line);overflow-wrap:anywhere}
+a{color:var(--accent)}
+kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-2)}
+/* loader */
+#loader{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px}
+#loader .lbox{display:grid;gap:12px;justify-items:center;text-align:center;width:min(380px,100%)}
+#loader h2{font-family:var(--f-display);margin:0;font-size:26px}
+#loader .r2bar{width:100%;height:10px}
+#loader p{margin:0;color:var(--muted);font-size:13.5px}
+/* conclusion */
+.concl{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 9%,var(--surface)),var(--surface) 60%)}
+.concl .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+.concl .rq{font-size:14px;color:var(--muted);max-width:80ch}
+.concl .answer{font-family:var(--f-display);font-size:24px;line-height:1.25;margin:6px 0 10px;text-wrap:balance}
+.kfacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+.kfact{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.kfact .lab{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.kfact .num{font-family:var(--f-mono);font-size:18px;font-weight:600}
+.kfact .sub{font-size:12.5px;color:var(--muted)}
+#onset,#scatter{display:block;width:100%;height:300px}
+/* term tooltips */
+.term{text-decoration:underline dotted color-mix(in srgb,var(--accent) 70%,transparent);text-underline-offset:3px;cursor:help}
+#tip{position:fixed;z-index:40;max-width:300px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.45);pointer-events:none}
+#tip b{display:block;margin-bottom:3px}
+#tip small{display:block;margin-top:6px;color:var(--accent)}
+/* tour */
+#tourHole{position:fixed;z-index:60;border-radius:12px;box-shadow:0 0 0 9999px rgba(3,6,10,.72);border:2px solid var(--accent);transition:all .25s ease;pointer-events:none}
+#tourCard{position:fixed;z-index:61;width:min(340px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#tourCard h3{margin:0;font-family:var(--f-display);font-size:18px}
+#tourCard p{margin:0;font-size:14px}
+#tourCard .trow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+#tourCard .tstep{font-size:12px;color:var(--muted)}
+.helpbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.rowtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.credit{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.credit .placeholder{color:var(--warn)}
+.rqbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:8px}
+.rqbox div{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.rqbox b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}
+/* My eye: one step at a time */
+.wizard{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.wstep{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:12px;min-width:0}
+.whead{display:flex;gap:12px;align-items:center}
+.wnum{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--surface-2);border:2px solid var(--line)}
+.whead h3{margin:0;font-size:18px;font-family:var(--f-display)}
+.wstate{font-size:12.5px;color:var(--muted)}
+.wbody{display:grid;gap:12px;min-width:0}
+.wbody p{margin:0}
+.wlock{margin:0;color:var(--muted);font-size:14px}
+.wstep.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.wstep.active .wnum{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.wstep.done .wnum{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.wstep.done .wstate{color:var(--ok)}
+.wstep.locked .whead{opacity:.5}
+.wstep.locked .wbody{display:none}
+.wstep:not(.locked) .wlock{display:none}
+#ws4.locked.preview .wbody{display:grid}
+#ws4.locked.preview .wlock{display:none}
+.wstep.done:not(#ws4) .wbody{display:none}
+.wstep.done.open .wbody{display:grid}
+.wstep.done:not(#ws4) .whead{cursor:pointer}
+.wstep.done:not(#ws4) .wstate::after{content:" · click to reopen"}
+.wstep.done.open .wstate::after{content:" · click to close"}
+.wstep .meslot{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;max-width:620px}
+.livebox{background:var(--surface-2);border:1px dashed var(--accent);border-radius:12px;padding:12px;display:grid;gap:10px;max-width:620px}
+#livePrev{width:100%;max-width:420px;border-radius:10px;transform:scaleX(-1);background:#000}
+.tk-cam{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(200px,35vw);border-radius:10px;border:2px solid var(--accent);transform:scaleX(-1);z-index:72;background:#000}
+.linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
+/* stress task overlay: identical layout in both phases keeps screen brightness matched */
+#task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.tk-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tk-time{font-size:22px;font-weight:600;margin-left:auto}
+.tk-score{color:var(--muted);font-size:13px}
+.tk-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;min-height:0}
+@media (max-width:760px){.tk-body{grid-template-columns:minmax(0,1fr)}}
+.tk-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px;align-content:start}
+.tk-panel h3{margin:0;font-size:16px}
+.tk-panel h3 small{font-weight:500;color:var(--muted);margin-left:6px}
+.tk-tanks{display:grid;grid-template-columns:1fr 1fr;gap:18px;justify-items:center}
+.tank{position:relative;width:min(140px,100%);height:clamp(180px,38vh,320px);border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.tank .band{position:absolute;left:0;right:0;bottom:50%;height:25%;background:color-mix(in srgb,var(--ok) 20%,transparent);border-block:1px dashed var(--ok)}
+.tank .fill{position:absolute;left:0;right:0;bottom:0;height:62.5%;background:color-mix(in srgb,var(--accent) 55%,transparent)}
+.tank.out .fill{background:color-mix(in srgb,var(--bad) 55%,transparent)}
+.tank .tlab{position:absolute;top:6px;left:8px;font-weight:700}
+.tank .tval{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-weight:600}
+.tk-pumps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pump{border:2px solid var(--line);background:var(--surface-2);border-radius:10px;padding:10px 4px;cursor:pointer;display:grid;gap:2px;justify-items:center}
+.pump b{font-size:18px}
+.pump span{font-size:12px;color:var(--muted)}
+.pump.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--surface-2))}
+.pump.fail{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--surface-2));cursor:not-allowed}
+.tk-msg{min-height:64px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:var(--f-mono);font-size:14px;display:flex;align-items:center}
+.tk-freq{font-size:clamp(34px,6vw,52px);font-weight:600;text-align:center;letter-spacing:.04em}
+.tk-fbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tk-rstat{margin:0;min-height:20px;font-size:13.5px;font-weight:600}
+.tk-cover{position:fixed;inset:0;z-index:71;background:color-mix(in srgb,var(--bg) 92%,transparent);display:grid;place-items:center;padding:24px;text-align:center}
+.tk-cover b#tkCountNum{display:block;font-family:var(--f-display);font-size:96px;line-height:1}
+.tk-cover p{font-size:18px}
+.tk-endbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:10px;justify-items:center;max-width:520px}
+.tk-endbox h2{margin:0;font-family:var(--f-display)}
+.tk-endbox p{margin:0}
+#tkRate .chip{min-width:36px;justify-content:center}
+/* my eye */
+.howto{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 10px}
+.howto>div{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
+.howto ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.mecols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.howto,.mecols{grid-template-columns:minmax(0,1fr)}}
+.meslot{display:grid;gap:10px;align-content:start}
+.mehead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mehead h3{margin:0;display:flex;align-items:center;gap:8px}
+.mebadge{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--pc);color:var(--accent-ink);font-size:13px;font-weight:700}
+.mefile{display:inline-flex;align-items:center}
+.mestage{position:relative;aspect-ratio:4/3;max-width:100%;background:var(--stage);border:1px dashed var(--line);border-radius:10px;overflow:hidden}
+.mestage.drag{border-color:var(--accent);background:var(--accent-soft)}
+.mestage canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.mewaves{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.mewaves{grid-template-columns:minmax(0,1fr)}}
+.mewaves canvas{display:block;width:100%;height:170px}
+.mewaves p{margin:4px 0 0;overflow-wrap:anywhere}
+#meStrips{display:block;width:100%;height:240px}
+#meResult .answer{font-family:var(--f-display);font-size:22px;line-height:1.25;margin:4px 0 6px;text-wrap:balance}
+#meResult .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="loader" role="status" aria-live="polite">
+  <div class="lbox">
+    <svg width="54" height="54" viewBox="0 0 36 36" aria-hidden="true"><path d="M2 18C7 9 12 6 18 6s11 3 16 12c-5 9-10 12-16 12S7 27 2 18z" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><circle cx="18" cy="18" r="8" fill="var(--accent)"/><circle cx="18" cy="18" r="3.6" fill="var(--ink)"/></svg>
+    <h2>Hippus Lab</h2>
+    <div class="r2bar"><div id="loadFill"></div></div>
+    <p id="loadText">Loading pupil recordings…</p>
+  </div>
+</div>
+<div id="tip" hidden></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><path d="M2 18C7 9 12 6 18 6s11 3 16 12c-5 9-10 12-16 12S7 27 2 18z" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><circle cx="18" cy="18" r="8" fill="var(--accent)"/><circle cx="18" cy="18" r="3.6" fill="var(--ink)"/></svg>
+    <div><h1>Hippus Lab</h1><small>Pupil waves under stress · PhysioNet stress-resilience dataset, <span id="nCount">35</span> participants</small></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-sim" aria-selected="true" data-view="sim">Simulate</button>
+    <button role="tab" id="tab-res" aria-selected="false" data-view="res">Results</button>
+    <button role="tab" id="tab-me" aria-selected="false" data-view="me">My eye</button>
+    <button role="tab" id="tab-about" aria-selected="false" data-view="about"><span class="hide-sm">Data &amp; m</span><span class="show-sm">M</span>ethod</button>
+    <button role="tab" id="tab-gloss" aria-selected="false" data-view="gloss">Glossary</button>
+  </nav>
+  <div class="who"><label for="subject">Participant</label> <select id="subject"></select> <span class="pinfo" id="pinfo"></span></div>
+  <button class="helpbtn" id="tourBtn" title="Show the guided tour">? Tour</button>
+</header>
+
+<!-- ============ SIMULATE ============ -->
+<main id="view-sim" class="sim">
+  <section class="stage" aria-label="Simulation stage">
+    <div class="eyes" id="eyes">
+      <div class="eyebox">
+        <canvas id="eyeA" aria-label="Animated eye, pupil size from recorded data"></canvas>
+        <div class="eyetag"><span class="pill" id="tagA"><i></i>Phase</span></div>
+        <div class="eyeread"><span>Pupil diameter</span><b id="dA">–</b> <small>mm</small></div>
+        <div class="lost" id="lostA" hidden>Blink / no signal</div>
+      </div>
+      <div class="eyebox" id="boxB" hidden>
+        <canvas id="eyeB" aria-label="Comparison eye"></canvas>
+        <div class="eyetag"><span class="pill" id="tagB"><i></i>Phase</span></div>
+        <div class="eyeread"><span>Pupil diameter</span><b id="dB">–</b> <small>mm</small></div>
+        <div class="lost" id="lostB" hidden>Blink / no signal</div>
+      </div>
+    </div>
+
+    <div class="graphbox">
+      <div class="graphhead">
+        <h3 id="graphTitle">Last 30 seconds of pupil signal</h3>
+        <div class="seg" role="group" aria-label="Signal view">
+          <button id="vRaw" aria-pressed="false">Raw (mm)</button>
+          <button id="vHp" aria-pressed="true">Hippus wave</button>
+        </div>
+      </div>
+      <canvas id="trace" aria-label="Strip chart of pupil diameter with fitted sine wave"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="transport">
+      <div class="tbtns">
+        <button class="round" id="back" title="Back 10 s (←)" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24"><path d="M11 6v12l-8.5-6L11 6zm9 0v12l-8.5-6L20 6z"/></svg></button>
+        <button class="round big" id="play" title="Play / pause (Space)" aria-label="Play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 5v14l12-7z"/></svg></button>
+        <button class="round" id="fwd" title="Forward 10 s (→)" aria-label="Forward 10 seconds"><svg viewBox="0 0 24 24"><path d="M13 6v12l8.5-6L13 6zM4 6v12l8.5-6L4 6z"/></svg></button>
+        <div class="seg" role="group" aria-label="Playback speed" id="speeds">
+          <button data-s="1" aria-pressed="false">1×</button><button data-s="3" aria-pressed="true">3×</button><button data-s="10" aria-pressed="false">10×</button><button data-s="30" aria-pressed="false">30×</button>
+        </div>
+      </div>
+      <div class="tl">
+        <div class="tlrow"><span id="clock" class="mono">0:00 / 0:00</span><span id="tlnote">Drag the timeline to scrub the full session</span></div>
+        <canvas id="timeline" aria-label="Session timeline, colored by experiment phase"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel" aria-label="Controls">
+    <details class="box" open>
+      <summary>Stress meter</summary>
+      <div class="boxbody">
+        <div class="gauge">
+          <svg viewBox="0 0 220 124" aria-hidden="true">
+            <path d="M20 112 A90 90 0 0 1 60.4 37" fill="none" stroke="var(--ok)" stroke-width="16"/>
+            <path d="M63 35.4 A90 90 0 0 1 157 35.4" fill="none" stroke="var(--warn)" stroke-width="16"/>
+            <path d="M159.6 37 A90 90 0 0 1 200 112" fill="none" stroke="var(--bad)" stroke-width="16"/>
+            <g id="needle" style="transform-origin:110px 112px;transition:transform .25s ease-out"><line x1="110" y1="112" x2="110" y2="34" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/></g>
+            <circle cx="110" cy="112" r="8" fill="var(--ink)"/>
+          </svg>
+          <div class="score mono" id="score">–</div>
+          <div class="lvl" id="lvl">–</div>
+        </div>
+        <p class="hint">Compares the last 30 s with this person's own <span class="term" data-g="Working baseline">working baseline</span> (same screen and light): pupil size, wave amplitude A and wave speed B. Exploratory index, not a clinical test.</p>
+      </div>
+    </details>
+
+    <details class="box" open>
+      <summary>Jump to phase</summary>
+      <div class="boxbody">
+        <div class="chips" id="phaseChips"></div>
+        <label class="check"><input type="checkbox" id="compare"> Compare side by side with working baseline</label>
+        <div class="ctl" id="cmpRow" hidden>
+          <label for="cmpPhase">Compare working baseline against</label>
+          <select id="cmpPhase"></select>
+        </div>
+      </div>
+    </details>
+
+    <details class="box" open>
+      <summary>Wave equation (live fit)</summary>
+      <div class="boxbody">
+        <div class="eq" id="eqSine">y = A·sin(B(t − C)) + D</div>
+        <dl class="kv">
+          <dt><span class="term" data-g="Amplitude A">Amplitude A</span> (wave height)</dt><dd id="kA">–</dd>
+          <dt><span class="term" data-g="Constant B">Constant B</span> (angular speed)</dt><dd id="kB">–</dd>
+          <dt><span class="term" data-g="Frequency f">Frequency f</span> = B / 2π</dt><dd id="kF">–</dd>
+          <dt><span class="term" data-g="Period T">Period T</span> = 2π / B</dt><dd id="kT">–</dd>
+          <dt><span class="term" data-g="Midline D">Midline D</span> (mean size)</dt><dd id="kD">–</dd>
+        </dl>
+        <div class="ctl"><label><span>Fit quality <span class="term" data-g="R²">R²</span></span> <output id="kR2">–</output></label><div class="r2bar"><div id="r2fill"></div></div></div>
+        <div class="eq" id="eqQuad">y = a(t − h)² + k</div>
+        <dl class="kv">
+          <dt><span class="term" data-g="Curvature a">Vertex curvature a</span></dt><dd id="qa">–</dd>
+          <dt><span class="term" data-g="Acceleration 2a">Constriction acceleration 2a</span></dt><dd id="q2a">–</dd>
+          <dt>Constrictions per minute</dt><dd id="qn">–</dd>
+        </dl>
+        <p class="hint">Each pupil <span class="term" data-g="Constriction">constriction</span> bottoms out in a U-shape. Fitting a parabola there gives the <span class="term" data-g="Vertex (h, k)">vertex (h, k)</span>; the larger <b>a</b>, the sharper the pupil turns around.</p>
+      </div>
+    </details>
+
+    <details class="box">
+      <summary>Model lab: fit it yourself</summary>
+      <div class="boxbody">
+        <label class="check"><input type="checkbox" id="manual"> Use my sliders instead of the auto-fit</label>
+        <div class="ctl"><label for="sA">A amplitude <output id="oA">0.050 mm</output></label><input type="range" id="sA" min="0" max="0.4" step="0.002" value="0.05"></div>
+        <div class="ctl"><label for="sB">B angular speed <output id="oB">1.50 rad/s</output></label><input type="range" id="sB" min="0.5" max="6.3" step="0.01" value="1.5"></div>
+        <div class="ctl"><label for="sC">C horizontal shift <output id="oC">0.00 s</output></label><input type="range" id="sC" min="0" max="12.6" step="0.02" value="0"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="copyFit">Copy auto-fit to sliders</button></div>
+        <p class="hint">Pause the playback, switch to manual and try to beat the computer's R². Changing B changes how many waves fit in the 30 s window.</p>
+      </div>
+    </details>
+
+    <details class="box">
+      <summary>Display</summary>
+      <div class="boxbody">
+        <div class="ctl"><label for="gain">Exaggerate pupil changes <output id="oGain">×3</output></label><input type="range" id="gain" min="1" max="8" step="0.5" value="3"></div>
+        <label class="check"><input type="checkbox" id="showFit" checked> Show fitted sine wave</label>
+        <label class="check"><input type="checkbox" id="showVertex" checked> Show constriction parabolas</label>
+        <p class="hint">Keys: <kbd>Space</kbd> play/pause, <kbd>←</kbd> <kbd>→</kbd> skip 10 s, <kbd>1</kbd>–<kbd>6</kbd> jump to a phase.</p>
+      </div>
+    </details>
+  </aside>
+</main>
+
+<!-- ============ RESULTS ============ -->
+<main id="view-res" class="page" hidden>
+  <section class="card concl" id="conclCard">
+    <span class="eyebrow">Conclusion</span>
+    <p class="rq"><b>Research question:</b> Can sinusoidal wave equations and quadratic vertex analysis tell apart pupil behavior at baseline and under acute cognitive stress?</p>
+    <p class="answer" id="conclAnswer">Fitting waves for every participant…</p>
+    <div class="kfacts" id="conclFacts"></div>
+    <p id="conclText"></p>
+  </section>
+  <section class="card">
+    <h2>What participants did in each phase</h2>
+    <p>Everyone ran the same 31-minute session in the MATB-II flight-task simulator, always in this order. Their main job was the fuel task: keep tanks A and B as close to 2,500 units as possible by switching pumps that move fuel from the reserve tanks.</p>
+    <ol class="phases">
+      <li style="--pc:var(--rest)"><div class="ph-head"><b>Rest</b><span>Resting baseline · 1 min</span></div><p>Sat still and relaxed with eyes open. No task on screen. This records the person's calm, untasked pupil.</p></li>
+      <li style="--pc:var(--work)"><div class="ph-head"><b>Work</b><span>Working baseline · 6 min</span></div><p>Did the fuel task alone, at a normal pace. Same screen and effort as the later phases, but without the stressors, so it is the fairest control.</p></li>
+      <li style="--pc:var(--stress)"><div class="ph-head"><b>Stress 1</b><span>6 min</span></div><p>Fuel task plus two stressors: four pumps failed every 10 s, and air-traffic-control radio messages arrived about three times a minute. Each call meant finding their own call sign and tuning a radio to the requested frequency.</p></li>
+      <li style="--pc:var(--recov)"><div class="ph-head"><b>Recov 1</b><span>Recovery 1 · 6 min</span></div><p>Back to the fuel task alone. Shows how quickly the body settles after stress.</p></li>
+      <li style="--pc:var(--stress)"><div class="ph-head"><b>Stress 2</b><span>6 min</span></div><p>The same stress conditions again. Comparing it with Stress 1 shows whether people adapt or tire on a second exposure.</p></li>
+      <li style="--pc:var(--recov)"><div class="ph-head"><b>Recov 2</b><span>Recovery 2 · 6 min</span></div><p>Fuel task alone once more, the final cool-down of the session.</p></li>
+    </ol>
+    <p class="hint">Timings come from the dataset's protocol. Event markers in each recording show when each phase began.</p>
+  </section>
+  <section class="card">
+    <h2>Does stress change the pupil wave?</h2>
+    <p>Each participant's recording was cut into overlapping 30-second windows. In each window the <span class="term" data-g="Hippus">hippus</span> signal was fitted with <span class="mono">y = A·sin(B(t − C)) + D</span>, and every constriction trough with <span class="mono">y = a(t − h)² + k</span>. Medians per phase are compared with a <span class="term" data-g="Paired t-test">paired t-test</span>. The headline number is <b>Stress minus <span class="term" data-g="Working baseline">Working baseline</span></b>, because both use the same screen and light. Each card also gives the <span class="term" data-g="Effect size (Cohen's d)">effect size d</span> and a <span class="term" data-g="95% confidence interval">95% confidence interval</span>.</p>
+    <div class="progress" id="rProgress"><span id="rProgText">Analyzing participants…</span><div class="r2bar"><div id="rProgFill"></div></div></div>
+    <div class="stats" id="hypStats"></div>
+  </section>
+  <section class="card" id="lightCard">
+    <h2>Why is the resting pupil the largest?</h2>
+    <p>Stress should widen the pupil, yet the Resting baseline usually shows the biggest pupil of the session. The cause is light. The pupil reacts to brightness far more strongly than to thinking: light can change its size by 2–4 mm, while mental effort or stress adds only about 0.1–0.5 mm.</p>
+    <div class="explain">
+      <div class="why">
+        <h3>What changed between phases</h3>
+        <ul>
+          <li><b>Resting baseline:</b> participants relaxed with eyes open and were not working on the bright task screen. Less light reached the eye, so the pupil was larger.</li>
+          <li><b>Working, Stress and Recovery:</b> everyone stared at the same bright MATB-II screen, so the pupil shrank at once and stayed smaller for the rest of the session.</li>
+          <li><b>Fatigue and time order:</b> resting always came first. Over 30 minutes the pupil slowly drifts smaller as people tire, which pulls every later phase down.</li>
+        </ul>
+        <p>Comparing Rest with Stress therefore mostly compares two lighting conditions. The fair control is the <b>Working baseline</b>: the same screen, light and task, with only the stressors (radio calls and pump failures) added.</p>
+      </div>
+      <div class="lightviz">
+        <h3>Mean pupil diameter by phase</h3>
+        <div id="lightBars"></div>
+        <p class="hint" id="lightNote"></p>
+      </div>
+    </div>
+    <p><b>For the hypothesis:</b> the cards above therefore use Working as the main comparison. The "vs rest" line is shown for reference but is <span class="term" data-g="Confound">confounded</span> by lighting. Lighting is listed as a control variable, but this dataset does not hold it constant across Rest and the task phases. This belongs in the project's limitations.</p>
+  </section>
+  <section class="card">
+    <div class="rowhead">
+      <h2 style="margin:0">What happens the moment stress begins?</h2>
+      <div class="seg" role="group" aria-label="Phase onset" id="onsetSeg">
+        <button data-k="2" aria-pressed="true">Stress 1 starts</button><button data-k="3" aria-pressed="false">Recovery 1 starts</button><button data-k="4" aria-pressed="false">Stress 2 starts</button>
+      </div>
+    </div>
+    <p>An <span class="term" data-g="Event-locked average">event-locked average</span>: every participant's pupil is lined up at the second the phase changed (time 0), measured as change from their own last 30 seconds before it, then averaged. The shaded band is the 95% confidence range of the average. If stress widens the pupil, the line should rise after 0.</p>
+    <canvas id="onset" aria-label="Average change in pupil diameter around the start of the selected phase"></canvas>
+    <p class="hint" id="onsetNote"></p>
+  </section>
+  <section class="card">
+    <div class="rowhead">
+      <h2 style="margin:0">Do more resilient people react less?</h2>
+      <label class="who" for="scMetric">Response <select id="scMetric">
+        <option value="diam">Pupil size change (mm)</option>
+        <option value="B">Change in B (rad/s)</option>
+        <option value="A">Change in A (mm)</option>
+      </select></label>
+    </div>
+    <p>Each dot is one participant. Across: their <span class="term" data-g="CD-RISC">CD-RISC</span> resilience score. Up: how much the measure changed from Working to Stress. The line is the best-fit straight line, and <span class="term" data-g="Correlation r">r</span> says how closely the dots follow it.</p>
+    <canvas id="scatter" aria-label="Scatter plot of resilience score against stress response"></canvas>
+    <p class="hint" id="scNote"></p>
+  </section>
+  <section class="card">
+    <div class="rowhead">
+      <h3 id="rTitle">Metric across the six phases</h3>
+      <label class="who" for="metric">Metric <select id="metric">
+        <option value="B">Wave constant B (rad/s)</option>
+        <option value="A">Amplitude A (mm)</option>
+        <option value="diam">Mean pupil diameter (mm)</option>
+        <option value="qa">Vertex curvature a (mm/s²)</option>
+        <option value="rate">Constrictions per minute</option>
+        <option value="r2">Sine fit R²</option>
+      </select></label>
+    </div>
+    <canvas id="rchart" aria-label="Line chart of the selected metric per participant across phases"></canvas>
+    <div class="legend" id="rlegend" style="margin-top:6px"></div>
+  </section>
+  <section class="card">
+    <div class="rowhead">
+      <h3 style="margin:0">Per-participant values</h3>
+      <div class="rowtools"><button class="btn" id="copyTable">Copy table</button><span class="hint" id="copyMsg" role="status"></span></div>
+    </div>
+    <div class="tablewrap"><table id="rtable"></table></div>
+  </section>
+</main>
+
+<!-- ============ MY EYE ============ -->
+<main id="view-me" class="page" hidden>
+  <section class="card">
+    <h2>Measure your own eye</h2>
+    <p>Repeat the study on yourself in four steps, about 10 minutes in all. You record your eye twice, once calm and once during a short version of the study's stress task. The page then measures your pupil's wave in both videos and compares the change with the study's participants.</p>
+    <p class="hint">You need this page on a laptop or tablet, a phone to film your eye, and sound turned on. Videos are analyzed inside your browser and never uploaded anywhere. This is an educational experiment, not a medical test.</p>
+  </section>
+
+  <ol class="wizard">
+    <!-- STEP 1 -->
+    <li class="wstep" id="ws1">
+      <div class="whead"><span class="wnum">1</span><div><h3>Record your calm video</h3><span class="wstate" id="ws1State">Start here</span></div></div>
+      <div class="wbody">
+        <div class="howto">
+          <div><b>Get set up</b><ul>
+            <li>Sit somewhere with steady light. Stay in this same spot for both videos: the same light is your <span class="term" data-g="Control variable">control</span>.</li>
+            <li>Open your phone's camera in video mode. Hold it about 10–15 cm from one eye, so the colored iris fills a good part of the picture.</li>
+            <li>Turn the laptop so you can see its screen with your other eye.</li>
+          </ul></div>
+          <div><b>Record</b><ul>
+            <li>Press <b>Start calm screen</b>. During the 5-second countdown, start recording on your phone.</li>
+            <li>For 60 seconds, just watch the screen and breathe slowly. Nothing to do.</li>
+            <li>When it says done, stop recording, then upload the video below.</li>
+          </ul></div>
+        </div>
+        <div class="livebox" id="liveBox" hidden>
+          <p><b>One-device option:</b> record with this device's own camera instead of a phone. With the camera on, the page films your eye automatically during the calm screen and the stress task. Sit about 25–30 cm from the camera with light on your face. It is less precise than a phone held close to your eye.</p>
+          <div class="rowtools"><button class="btn" id="liveOn">Use this device's camera</button><span class="hint" id="liveMsg" role="status"></span></div>
+          <video id="livePrev" muted playsinline hidden></video>
+        </div>
+        <div class="rowtools"><button class="btn primary" id="tkStartCalm">Start calm screen (60 s)</button><span class="hint" id="calmMsg"></span></div>
+        <div class="meslot">
+          <div class="mehead"><b>Upload your calm video</b><label class="btn primary mefile">Choose video<input type="file" id="meFile-calm" accept="video/*" hidden></label></div>
+          <div class="mestage" id="meStage-calm"><canvas id="meCv-calm" aria-label="Calm video frame. Click the center of the pupil."></canvas></div>
+          <div class="ctl"><label for="meIris-calm"><span>Iris circle size</span><output id="meIrisOut-calm">–</output></label><input type="range" id="meIris-calm" min="3" max="100" step="0.5" value="55" disabled></div>
+          <div class="rowtools"><button class="btn primary" id="meGo-calm" disabled>Scan this video</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-calm"></div></div></div>
+          <p class="hint" id="meStat-calm" role="status">Choose or drop a video to start.</p>
+        </div>
+      </div>
+      <p class="wlock">Locked</p>
+    </li>
+
+    <!-- STEP 2 -->
+    <li class="wstep" id="ws2">
+      <div class="whead"><span class="wnum">2</span><div><h3>Read the stress task directions</h3><span class="wstate" id="ws2State">Unlocks after step 1</span></div></div>
+      <div class="wbody">
+        <p>Next you'll do a short version of <span class="term" data-g="MATB-II">MATB-II</span>, the NASA flight task the researchers used to stress people. Read everything below first. The task starts only when you press the button at the bottom, and your phone should be recording the whole time.</p>
+        <div class="howto">
+          <div><b>Job 1: keep the fuel tanks full</b><ul>
+            <li>You'll see two fuel tanks, <b>A</b> and <b>B</b>. Keep both inside the <b style="color:var(--ok)">green band</b>. A tank turns red when it's outside.</li>
+            <li>Four pumps add fuel: pumps <b>1</b> and <b>2</b> fill tank A, pumps <b>3</b> and <b>4</b> fill tank B. Click a pump (or press its number key) to turn it on or off.</li>
+            <li>Pumps will break without warning and turn red for a few seconds. Use the other pump while one is broken.</li>
+          </ul></div>
+          <div><b>Job 2: answer the radio</b><ul>
+            <li>Your call sign is <b>HIPPUS-7</b>. Calls are spoken out loud and shown for 4 seconds, for example: <i>"HIPPUS-7, contact center on 124.475."</i></li>
+            <li>When a call is for you, change the big frequency number to match using the <b>−1 −.025 +.025 +1</b> buttons (or arrow keys), then press <b>Confirm</b> (or Enter). You have 12 seconds.</li>
+            <li>Ignore calls for other aircraft, even ones that sound similar, like HIPPO-17.</li>
+          </ul></div>
+        </div>
+        <p>It's meant to feel rushed. Doing your best is all that matters, and the score doesn't affect your eye measurement.</p>
+        <div class="rowtools">
+          <label class="check"><input type="checkbox" id="tkReadOk"> I've read the directions and my phone is ready to record</label>
+          <label class="who" for="tkDur" style="font-weight:500">Length <select id="tkDur"><option value="60">60 s</option><option value="90" selected>90 s</option><option value="120">120 s</option></select></label>
+        </div>
+        <div class="rowtools"><button class="btn primary" id="tkStartStress" disabled>Start the stress task</button><span class="hint">A 5-second countdown comes first: start recording your eye then.</span></div>
+        <button class="linkbtn" id="tkSkip">I already recorded a stressed video</button>
+      </div>
+      <p class="wlock">Finish step 1 first.</p>
+    </li>
+
+    <!-- STEP 3 -->
+    <li class="wstep" id="ws3">
+      <div class="whead"><span class="wnum">3</span><div><h3>Upload your stressed video</h3><span class="wstate" id="ws3State">Unlocks after step 2</span></div></div>
+      <div class="wbody">
+        <p id="ws3Msg">Upload the video you recorded during the stress task, then mark the pupil and scan it the same way as step 1.</p>
+        <div class="meslot">
+          <div class="mehead"><b>Upload your stressed video</b><label class="btn primary mefile">Choose video<input type="file" id="meFile-stress" accept="video/*" hidden></label></div>
+          <div class="mestage" id="meStage-stress"><canvas id="meCv-stress" aria-label="Stressed video frame. Click the center of the pupil."></canvas></div>
+          <div class="ctl"><label for="meIris-stress"><span>Iris circle size</span><output id="meIrisOut-stress">–</output></label><input type="range" id="meIris-stress" min="3" max="100" step="0.5" value="55" disabled></div>
+          <div class="rowtools"><button class="btn primary" id="meGo-stress" disabled>Scan this video</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-stress"></div></div></div>
+          <p class="hint" id="meStat-stress" role="status">Choose or drop a video to start.</p>
+        </div>
+      </div>
+      <p class="wlock">Finish step 2 first.</p>
+    </li>
+
+    <!-- STEP 4 -->
+    <li class="wstep" id="ws4">
+      <div class="whead"><span class="wnum">4</span><div><h3>Your result</h3><span class="wstate" id="ws4State">Appears after both videos are scanned</span></div></div>
+      <div class="wbody" id="ws4Body">
+
+  <section id="meResult" hidden>
+    <span class="eyebrow" id="meEyebrow">Example result</span>
+    <h2 id="meTitle">Loading study data…</h2>
+    <p id="meNote" class="hint"></p>
+    <p class="answer" id="meVerdict"></p>
+    <p id="meWaveTxt"></p>
+    <div class="kfacts" id="meFacts"></div>
+    <div class="mewaves">
+      <div><h3 id="meWaveCalmT">Calm</h3><canvas id="meWave-calm" aria-label="Calm hippus wave with fitted sine"></canvas><p class="mono hint" id="meEq-calm"></p></div>
+      <div><h3 id="meWaveStressT">Stressed</h3><canvas id="meWave-stress" aria-label="Stressed hippus wave with fitted sine"></canvas><p class="mono hint" id="meEq-stress"></p></div>
+    </div>
+    <h3 style="margin-top:12px">How your change compares with the study</h3>
+    <p class="hint">Each grey dot is one participant's change from Working baseline to Stress. The highlighted marker is the change from the calm to the stressed video.</p>
+    <canvas id="meStrips" aria-label="Your change compared with each study participant"></canvas>
+    <p class="hint" id="meQuality"></p>
+  </section>
+      </div>
+      <div class="wlock"><p style="margin:0 0 8px">Your result appears here after both videos are scanned.</p><button class="btn" id="meShowEx">Preview an example result from the study</button></div>
+    </li>
+  </ol>
+</main>
+
+<!-- ============ STRESS TASK OVERLAY ============ -->
+<div id="task" hidden role="dialog" aria-label="Flight task">
+  <div class="tk-top">
+    <span class="pill" id="tkPhase"><i></i>Baseline</span>
+    <span class="tk-time mono" id="tkTime">1:30</span>
+    <span class="tk-score mono" id="tkScore"></span>
+    <button class="btn" id="tkQuit">Stop task</button>
+  </div>
+  <div class="tk-body">
+    <section class="tk-panel">
+      <h3>Fuel <small>keep both tanks in the green band (2,000–3,000)</small></h3>
+      <div class="tk-tanks">
+        <div class="tank" id="tankA"><div class="band"></div><div class="fill"></div><span class="tlab">A</span><span class="tval mono">2500</span></div>
+        <div class="tank" id="tankB"><div class="band"></div><div class="fill"></div><span class="tlab">B</span><span class="tval mono">2500</span></div>
+      </div>
+      <div class="tk-pumps">
+        <button class="pump" data-p="0"><b>1</b><span>→ A</span></button>
+        <button class="pump" data-p="1"><b>2</b><span>→ A</span></button>
+        <button class="pump" data-p="2"><b>3</b><span>→ B</span></button>
+        <button class="pump" data-p="3"><b>4</b><span>→ B</span></button>
+      </div>
+    </section>
+    <section class="tk-panel">
+      <h3>Radio <small>your call sign: <b>HIPPUS-7</b></small></h3>
+      <div class="tk-msg" id="tkMsg">Listening…</div>
+      <div class="tk-freq mono" id="tkFreq">121.500</div>
+      <div class="tk-fbtns">
+        <button class="btn" data-f="-1">−1</button><button class="btn" data-f="-0.025">−.025</button><button class="btn" data-f="0.025">+.025</button><button class="btn" data-f="1">+1</button>
+      </div>
+      <button class="btn primary" id="tkConfirm" style="width:100%">Confirm frequency</button>
+      <p class="tk-rstat" id="tkRadioStat"></p>
+    </section>
+  </div>
+  <video id="tkCam" class="tk-cam" muted playsinline hidden aria-label="Camera preview: keep your eye in view"></video>
+  <div class="tk-cover" id="tkCount" hidden><div><p id="tkCountMsg">Start recording your eye now</p><b id="tkCountNum">5</b></div></div>
+  <div class="tk-cover" id="tkEnd" hidden><div class="tk-endbox">
+    <h2 id="tkEndTitle">Task complete</h2>
+    <p id="tkEndRec">Stop your phone recording now.</p>
+    <p id="tkEndStats" class="hint" style="font-size:14px"></p>
+    <p><b>How stressed did you feel?</b> 1 = completely calm, 10 = extremely stressed</p>
+    <div class="chips" id="tkRate"></div>
+    <button class="btn primary" id="tkClose">Done</button>
+  </div></div>
+</div>
+
+<!-- ============ ABOUT ============ -->
+<main id="view-about" class="page" hidden>
+  <section class="card">
+    <h2>Research design</h2>
+    <p>Can non-linear algebraic modeling, specifically sinusoidal wave equations and quadratic vertex analysis, mathematically tell apart pupil dynamics in healthy baseline subjects and subjects under acute cognitive stress, using open-source clinical data?</p>
+    <div class="rqbox">
+      <div><b><span class="term" data-g="Independent variable">Independent variable</span></b>Cognitive state: baseline (resting or working) vs. acute stress.</div>
+      <div><b><span class="term" data-g="Dependent variable">Dependent variables</span></b>Hippus wave amplitude A, wave constant B (frequency), and quadratic vertex curvature a during constriction.</div>
+      <div><b><span class="term" data-g="Control variable">Control variables</span></b>Lighting, sampling rate (Hz) and recording duration, as fixed by the dataset.</div>
+      <div><b><span class="term" data-g="Hypothesis">Hypothesis</span></b>Under acute stress, pupil oscillations show higher amplitude and higher frequency, seen as a significant rise in the wave constant B.</div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Where the numbers come from</h2>
+    <p>Recordings are from the PhysioNet <b>Neurophysiological Dataset of Stress Resilience During Human-Computer Interaction</b> (v1.0.0): all 35 participants (p01–p37; p14 and p23 were excluded by the authors). Each participant's CSV holds 74 rows of signals sampled at 250 Hz. For p01–p24 this page uses rows 66–67 (right and left pupil diameter) and row 74 (<span class="term" data-g="Event marker">event markers</span>).</p>
+    <p>For p25–p37 the Tobii glasses recorded pupil size separately at 50 Hz (<span class="mono">pXXeye.xlsx</span>). Their event markers still come from row 74 of the main CSV. The two recordings share no clock, so they are lined up at the start of recording; phase boundaries for these 13 people may be off by up to about 30 s. When a session has extra markers, the last five are used, as the dataset notes advise. Resilience scores (CD-RISC, 0–40) come from <span class="mono">demographicCDrisk.csv</span>.</p>
+    <p>Participants ran the MATB-II resource-management task. After a 1-minute resting baseline, each condition lasted 6 minutes: Working baseline, Stress 1, Recovery 1, Stress 2, Recovery 2. Stress conditions added air-traffic radio requests and pump failures every 10 s.</p>
+    <div class="cite">Roy, S., &amp; Nuamah, J. (2026). Neurophysiological Dataset of Stress Resilience During Human-Computer Interaction (version 1.0.0). PhysioNet. https://doi.org/10.13026/x3vc-p627 · <a href="https://physionet.org/content/neuro-stress-resilience-hci/1.0.0/" target="_blank" rel="noopener">Open on PhysioNet</a></div>
+  </section>
+  <section class="card">
+    <h3>Processing steps</h3>
+    <ol class="steps">
+      <li><b>Clean.</b> Average left and right pupil, drop values outside 1–10 mm (blinks, tracking loss), and average every 25 samples (250 Hz → 10 Hz). Gaps are bridged by straight lines, both for analysis and for the animated eye.</li>
+      <li><b>Isolate the hippus.</b> Smooth with a 0.5 s moving average, then subtract a 20 s moving average. What remains is the fast oscillation around the midline (D).</li>
+      <li><b>Fit the sine.</b> For every 30 s window, try each frequency from 0.10 to 1.00 Hz and solve the least-squares fit of <span class="mono">a·sin(Bt) + b·cos(Bt)</span>. The best R² gives B; A = √(a² + b²) and C is the phase shift written as a horizontal shift.</li>
+      <li><b>Fit the vertex.</b> Find each trough that is the lowest point within ±0.8 s and at least 0.03 mm below the preceding peak. Fit <span class="mono">y = at² + bt + c</span> over ±0.6 s and convert it to vertex form; 2a is the turning acceleration in mm/s².</li>
+      <li><b>Compare.</b> Take the median of each metric per phase. The main test is a paired t-test of Stress (mean of Stress 1 and 2) against the Working baseline, reported with Cohen's d and a 95% confidence interval. Rest vs. Stress is reported too, but lighting differs between them.</li>
+      <li><b>Time-lock and correlate.</b> Average every participant's pupil change around each phase start, and correlate each person's Working-to-Stress change with their CD-RISC resilience score (Pearson r).</li>
+    </ol>
+  </section>
+  <section class="card">
+    <h3>Controls and limits</h3>
+    <p><b>Held constant by the dataset:</b> same lab, same Tobii Pro Glasses 2 tracker, the same 250 Hz stream for p01–p24, and fixed 6-minute conditions. Screen brightness changes during the task can also move the pupil, so a size change is not purely cognitive.</p>
+    <p><b>Limits:</b> p16's session stopped after 24 minutes, so its later phases are missing. The resting baseline is only 60 s long. The tracker's own rate is below 250 Hz, so the stream contains repeated values. The stress meter is an exploratory composite built for this page.</p>
+  </section>
+  <section class="card" id="credits">
+    <h2>Credits &amp; citation</h2>
+    <div class="credit">
+      <div><h3>Project</h3><p id="crAuthor"></p></div>
+      <div><h3>Data</h3><p>Shotabdi Roy and Joseph Nuamah, Neuroergonomics and Cognitive Engineering Lab, Oklahoma State University. Shared openly on PhysioNet.</p></div>
+      <div><h3>Tools</h3><p>Analysis and simulation run in your browser (HTML canvas and JavaScript). No data leaves the page.</p></div>
+    </div>
+    <h3 style="margin-top:8px">Cite this project</h3>
+    <div class="cite" id="citeSelf"></div>
+    <h3 style="margin-top:12px">Cite the data</h3>
+    <div class="cite" id="citeData">Roy, S., &amp; Nuamah, J. (2026). Neurophysiological Dataset of Stress Resilience During Human-Computer Interaction (version 1.0.0). PhysioNet. RRID:SCR_007345. https://doi.org/10.13026/x3vc-p627<br><br>Pollard, T., Moody, B. E., Lehman, L., Gow, B., Fernandes, C., Xie, C., Johnson, A., Mark, R. G., &amp; Heldt, T. (2026). PhysioNet as a global platform for biomedical research. Nature Health. https://doi.org/10.1038/s44360-026-00096-z</div>
+    <div class="rowtools" style="margin-top:10px"><button class="btn primary" id="copyCite">Copy both citations</button><span class="hint" id="citeMsg" role="status"></span></div>
+  </section>
+</main>
+
+<!-- ============ GLOSSARY ============ -->
+<main id="view-gloss" class="page" hidden>
+  <section class="card">
+    <h2>Glossary: every term in plain words</h2>
+    <p>This project mixes eye science, algebra and statistics. Each term below is explained without assuming any background, with an everyday comparison where it helps. Search, or pick a topic.</p>
+    <div class="gtools">
+      <input type="search" id="gsearch" placeholder="Search a word, like amplitude or p-value" aria-label="Search the glossary">
+      <div class="chips" id="gcats"></div>
+    </div>
+  </section>
+
+  <section class="card gfig">
+    <div>
+      <h3>The wave equation at a glance</h3>
+      <svg viewBox="0 0 340 170" role="img" aria-label="A sine wave labelled with amplitude A, period T, midline D and shift C">
+        <line x1="20" y1="85" x2="330" y2="85" stroke="var(--muted)" stroke-dasharray="4 4"/>
+        <path id="gsine" fill="none" stroke="var(--wave)" stroke-width="3"/>
+        <line x1="96" y1="85" x2="96" y2="30" stroke="var(--accent)" stroke-width="2"/>
+        <text x="102" y="58" fill="var(--accent)" font-size="13" font-family="IBM Plex Mono, monospace">A</text>
+        <line x1="96" y1="150" x2="246" y2="150" stroke="var(--ink)" stroke-width="1.5"/>
+        <line x1="96" y1="144" x2="96" y2="156" stroke="var(--ink)"/><line x1="246" y1="144" x2="246" y2="156" stroke="var(--ink)"/>
+        <text x="152" y="166" fill="var(--ink)" font-size="12" font-family="IBM Plex Mono, monospace">period T</text>
+        <text x="290" y="80" fill="var(--muted)" font-size="12" font-family="IBM Plex Mono, monospace">D</text>
+        <line x1="20" y1="20" x2="58" y2="20" stroke="var(--vertex)" stroke-width="2"/>
+        <text x="24" y="14" fill="var(--vertex)" font-size="11" font-family="IBM Plex Mono, monospace">shift C</text>
+      </svg>
+      <p class="mono" style="font-size:13px">y = A·sin(B(t − C)) + D</p>
+      <p class="hint">A is how tall each wave is, B sets how fast the waves repeat (T = 2π ÷ B), C slides the wave left or right, and D is the middle line the wave swings around.</p>
+    </div>
+    <div>
+      <h3>The vertex of a constriction</h3>
+      <svg viewBox="0 0 340 170" role="img" aria-label="A U-shaped parabola with its lowest point, the vertex h comma k, marked">
+        <path d="M60 20 Q170 250 280 20" fill="none" stroke="var(--vertex)" stroke-width="3"/>
+        <circle cx="170" cy="135" r="6" fill="var(--vertex)"/>
+        <text x="170" y="162" text-anchor="middle" fill="var(--ink)" font-size="13" font-family="IBM Plex Mono, monospace">vertex (h, k)</text>
+        <text x="10" y="120" fill="var(--muted)" font-size="12">pupil</text>
+        <text x="10" y="135" fill="var(--muted)" font-size="12">shrinking</text>
+        <text x="330" y="120" text-anchor="end" fill="var(--muted)" font-size="12">pupil</text>
+        <text x="330" y="135" text-anchor="end" fill="var(--muted)" font-size="12">re-opening</text>
+      </svg>
+      <p class="mono" style="font-size:13px">y = a(t − h)² + k</p>
+      <p class="hint">When the pupil shrinks and then re-opens, the bottom of that dip looks like a U. The vertex (h, k) is the moment and size at the very bottom. A bigger a means a narrower, sharper U: the pupil turned around faster.</p>
+    </div>
+  </section>
+
+  <div id="glist" class="glist"></div>
+  <p class="hint" id="gempty" hidden>No term matches that search. Try a shorter word.</p>
+</main>
+
+<script>
+(async () => {
+"use strict";
+const FS = 10, WIN = 30;           // 10 Hz analysis rate, 30 s fit window
+const REF = 1;                      // Working baseline: the reference phase (same screen and light as Stress)
+const PH = [
+  {key:"rest", name:"Resting baseline", short:"Rest",     c:"--rest"},
+  {key:"work", name:"Working baseline", short:"Work",     c:"--work"},
+  {key:"s1",   name:"Stress 1",         short:"Stress 1", c:"--stress"},
+  {key:"r1",   name:"Recovery 1",       short:"Recov 1",  c:"--recov"},
+  {key:"s2",   name:"Stress 2",         short:"Stress 2", c:"--stress"},
+  {key:"r2",   name:"Recovery 2",       short:"Recov 2",  c:"--recov"}
+];
+const $ = id => document.getElementById(id);
+let C = {};                         // resolved theme colors
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ["ink","muted","line","surface","surface-2","accent","wave","vertex","grid","rest","work","stress","recov","stage"]) C[k] = cs.getPropertyValue("--"+k).trim();
+  for (const p of PH) p.col = cs.getPropertyValue(p.c).trim();
+  tlDirty = true; rDirty = true;
+}
+
+/* ---------- signal prep ---------- */
+function movavg(x, w){
+  const n = x.length, cs = new Float64Array(n+1), out = new Float32Array(n), h = w>>1;
+  for (let i=0;i<n;i++) cs[i+1] = cs[i] + x[i];
+  for (let i=0;i<n;i++){ const a=Math.max(0,i-h), b=Math.min(n,i+h+1); out[i]=(cs[b]-cs[a])/(b-a); }
+  return out;
+}
+function prep(d){
+  const raw = d.pupil, n = raw.length, x = new Float32Array(n), valid = new Uint8Array(n);
+  let last = -1, sum = 0, cnt = 0;
+  for (let i=0;i<n;i++){
+    const v = raw[i];
+    if (v == null) continue;
+    valid[i] = 1; x[i] = v; sum += v; cnt++;
+    if (last < 0) for (let j=0;j<i;j++) x[j] = v;
+    else if (i-last > 1) for (let j=last+1;j<i;j++) x[j] = x[last] + (v-x[last])*(j-last)/(i-last);
+    last = i;
+  }
+  for (let j=last+1;j<n;j++) x[j] = x[last];
+  const sm = movavg(x, 5), ma = movavg(x, 200), hp = new Float32Array(n);
+  for (let i=0;i<n;i++) hp[i] = sm[i]-ma[i];
+  // The last five markers start Working, Stress 1, Recovery 1, Stress 2, Recovery 2 (extra early markers are logging errors).
+  // Markers seconds apart are double presses (p15, p25 notes say to use the later one).
+  const dedup = d.markers.filter((m, i, a) => i === a.length-1 || a[i+1] - m > 30);
+  const dur = n/FS, mk = dedup.length > 5 ? dedup.slice(-5) : dedup, t0 = mk.length ? mk[0] : 60;
+  const ph = PH.map((p,k) => {
+    let s = k===0 ? Math.max(0,t0-60) : (mk[k-1] ?? t0+(k-1)*360);
+    let e = k===0 ? t0 : Math.min(s+360, mk[k] ?? Infinity);
+    s = Math.min(s, dur); e = Math.min(e, dur);
+    return {...p, s, e};
+  });
+  return {id:d.id, n, dur, x, sm, ma, hp, valid, mean: sum/cnt, ph, markers:d.markers, src:d.src, sex:d.sex, age:d.age, cdrisc:d.cdrisc};
+}
+
+/* ---------- algebra: sine + vertex fits ---------- */
+function fitSine(S, i0, i1, fmin=0.10, fmax=1.00){
+  i0 = Math.max(0, i0|0); i1 = Math.min(S.n, i1|0);
+  let m=0, c=0;
+  for (let i=i0;i<i1;i++) if (S.valid[i]) { m += S.hp[i]; c++; }
+  if (c < (i1-i0)*0.7 || c < 80) return null;
+  m /= c;
+  let Sxx = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { const y=S.hp[i]-m; Sxx += y*y; }
+  const dt = 1/FS;
+  const evalF = f => {
+    const w = 2*Math.PI*f, cs = Math.cos(w*dt), sn = Math.sin(w*dt);
+    let s = Math.sin(w*i0*dt), co = Math.cos(w*i0*dt);
+    let Sss=0,Scc=0,Ssc=0,Sxs=0,Sxc=0;
+    for (let i=i0;i<i1;i++){
+      if (S.valid[i]) { const y=S.hp[i]-m; Sss+=s*s; Scc+=co*co; Ssc+=s*co; Sxs+=y*s; Sxc+=y*co; }
+      const ns = s*cs + co*sn; co = co*cs - s*sn; s = ns;
+    }
+    const det = Sss*Scc - Ssc*Ssc; if (Math.abs(det) < 1e-9) return null;
+    const a = (Sxs*Scc - Sxc*Ssc)/det, b = (Sxc*Sss - Sxs*Ssc)/det;
+    return {f, w, a, b, red: a*Sxs + b*Sxc};
+  };
+  let best = null;
+  for (let f=fmin; f<=fmax+1e-9; f+=0.01){ const r = evalF(f); if (r && (!best || r.red > best.red)) best = r; }
+  if (!best) return null;
+  const f0 = best.f;
+  for (let f=f0-0.01; f<=f0+0.01; f+=0.001){ if (f<fmin||f>fmax) continue; const r = evalF(f); if (r && r.red > best.red) best = r; }
+  const A = Math.hypot(best.a, best.b), phi = Math.atan2(best.b, best.a), T = 2*Math.PI/best.w;
+  let Cs = (-phi/best.w) % T; if (Cs < 0) Cs += T;
+  let D = 0, dc = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { D += S.x[i]; dc++; }
+  return {A, B: best.w, f: best.f, C: Cs, T, r2: Sxx>0 ? best.red/Sxx : 0, m, D: D/dc};
+}
+function r2For(S, i0, i1, A, B, Cs){
+  let m=0,c=0; for (let i=i0;i<i1;i++) if (S.valid[i]) { m+=S.hp[i]; c++; }
+  if (!c) return 0; m/=c;
+  let sse=0, sst=0;
+  for (let i=i0;i<i1;i++) if (S.valid[i]) { const y=S.hp[i]-m, p=A*Math.sin(B*(i/FS - Cs)); sse+=(y-p)**2; sst+=y*y; }
+  return sst>0 ? 1-sse/sst : 0;
+}
+function troughs(S, i0, i1){
+  const out = [], W = 8, H = 6;
+  i0 = Math.max(W+25, i0|0); i1 = Math.min(S.n-W-1, i1|0);
+  for (let i=i0;i<i1;i++){
+    if (!S.valid[i]) continue;
+    const v = S.sm[i]; let ok = true, vc = 0;
+    for (let j=i-W;j<=i+W;j++){ if (j<i ? S.sm[j] <= v : S.sm[j] < v) { ok=false; break; } vc += S.valid[j]; }
+    if (!ok || vc < 2*W) continue;
+    let pk = -Infinity; for (let j=i-25;j<i;j++) pk = Math.max(pk, S.sm[j]);
+    if (pk - v < 0.03) continue;
+    let St2=0,St4=0,Sy=0,Sty=0,St2y=0,n=0;
+    for (let j=i-H;j<=i+H;j++){ const t=(j-i)/FS, y=S.sm[j]; St2+=t*t; St4+=t*t*t*t; Sy+=y; Sty+=t*y; St2y+=t*t*y; n++; }
+    const b = Sty/St2, det = St4*n - St2*St2, a = (St2y*n - St2*Sy)/det, c = (St4*Sy - St2*St2y)/det;
+    if (a <= 0) continue;
+    out.push({i, a, h: i/FS - b/(2*a), k: c - b*b/(4*a), drop: pk-v});
+    i += W;
+  }
+  return out;
+}
+const median = a => { if (!a.length) return NaN; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+
+function phaseMetrics(S, p){
+  if (p.e - p.s < 20) return {A:NaN, B:NaN, r2:NaN, diam:NaN, qa:NaN, rate:NaN};
+  const i0 = Math.round(p.s*FS), i1 = Math.round(p.e*FS), L = WIN*FS;
+  const As=[],Bs=[],R2=[];
+  for (let s=i0; s+L<=i1; s+=100){ const f = fitSine(S, s, s+L); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
+  if (!As.length && i1-i0 >= 200){ const f = fitSine(S, i0, i1); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
+  let d=0,c=0; for (let i=i0;i<i1;i++) if (S.valid[i]) { d+=S.x[i]; c++; }
+  const tr = troughs(S, i0, i1);
+  return {A:median(As), B:median(Bs), r2:median(R2), diam:c?d/c:NaN, qa:median(tr.map(t=>t.a)), rate: tr.length/((p.e-p.s)/60)};
+}
+
+/* ---------- state ---------- */
+// Stream data.json with a progress bar, so the page is never a blank screen on slow connections.
+async function loadData(){
+  const fill = $("loadFill"), txt = $("loadText");
+  try {
+    const res = await fetch("data.json");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const total = +res.headers.get("Content-Length") || 0, reader = res.body.getReader(), chunks = [];
+    let got = 0;
+    for (;;){
+      const {done, value} = await reader.read(); if (done) break;
+      chunks.push(value); got += value.length;
+      txt.textContent = `Loading pupil recordings… ${(got/1e6).toFixed(1)}${total ? " of " + (total/1e6).toFixed(1) : ""} MB`;
+      fill.style.width = total ? (got/total*90) + "%" : Math.min(90, got/5e4) + "%";
+    }
+    const buf = new Uint8Array(got); let o = 0; for (const c of chunks){ buf.set(c, o); o += c.length; }
+    txt.textContent = "Preparing signals…"; fill.style.width = "95%";
+    await new Promise(r => setTimeout(r, 30));
+    return JSON.parse(new TextDecoder().decode(buf));
+  } catch (err) {
+    txt.textContent = "The recordings could not be loaded. Reload the page to try again.";
+    throw err;
+  }
+}
+const RAW = await loadData();
+const subjects = RAW.map(prep);
+$("loader").hidden = true;
+const metricsCache = new Map();
+function metricsOf(S){ if (!metricsCache.has(S.id)) metricsCache.set(S.id, S.ph.map(p => phaseMetrics(S,p))); return metricsCache.get(S.id); }
+
+const st = {S: subjects[0], t: 0, playing: false, speed: 3, view: "hp", gain: 3, showFit: true, showVertex: true,
+  manual: false, mA: 0.05, mB: 1.5, mC: 0, compare: false, cmpK: 2, tau: 0, stress: 30};
+
+/* ---------- eye rendering ---------- */
+function mulberry(a){ return () => { a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+let irisTex = null, irisTexR = 0;
+function buildIris(R){
+  const s = Math.ceil(R*2*devicePixelRatio), cv = document.createElement("canvas"); cv.width = cv.height = s;
+  const g = cv.getContext("2d"), r = s/2, rnd = mulberry(7);
+  let gr = g.createRadialGradient(r,r,r*0.15,r,r,r);
+  gr.addColorStop(0,"#6b4a22"); gr.addColorStop(0.32,"#8a6a2c"); gr.addColorStop(0.55,"#4d7a86"); gr.addColorStop(0.9,"#2f5866"); gr.addColorStop(1,"#1c3640");
+  g.fillStyle = gr; g.beginPath(); g.arc(r,r,r,0,7); g.fill();
+  for (let k=0;k<900;k++){
+    const a = rnd()*Math.PI*2, r0 = r*(0.18+rnd()*0.1), r1 = r*(0.6+rnd()*0.38), wob = (rnd()-0.5)*0.08;
+    g.strokeStyle = rnd()<0.5 ? `rgba(255,236,200,${0.05+rnd()*0.12})` : `rgba(10,25,30,${0.06+rnd()*0.14})`;
+    g.lineWidth = (0.5+rnd()*1.6)*devicePixelRatio;
+    g.beginPath(); g.moveTo(r+Math.cos(a)*r0, r+Math.sin(a)*r0);
+    g.quadraticCurveTo(r+Math.cos(a+wob)*(r0+r1)/2, r+Math.sin(a+wob)*(r0+r1)/2, r+Math.cos(a+wob*2)*r1, r+Math.sin(a+wob*2)*r1); g.stroke();
+  }
+  for (let k=0;k<40;k++){ const a=rnd()*7, rr=r*(0.35+rnd()*0.45); g.fillStyle=`rgba(15,30,35,${0.15+rnd()*0.2})`; g.beginPath(); g.ellipse(r+Math.cos(a)*rr, r+Math.sin(a)*rr, r*0.03*(1+rnd()), r*0.012*(1+rnd()), a, 0, 7); g.fill(); }
+  gr = g.createRadialGradient(r,r,r*0.82,r,r,r); gr.addColorStop(0,"rgba(0,0,0,0)"); gr.addColorStop(1,"rgba(5,15,20,.85)");
+  g.fillStyle = gr; g.beginPath(); g.arc(r,r,r,0,7); g.fill();
+  irisTex = cv; irisTexR = R;
+}
+const eyes = {A: {cv:$("eyeA"), lid:1, lidV:1}, B: {cv:$("eyeB"), lid:1, lidV:1}};
+function sizeCanvas(cv){
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio||1, w = Math.max(1,Math.round(r.width*dpr)), h = Math.max(1,Math.round(r.height*dpr));
+  if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; return true; }
+  return false;
+}
+function drawEye(E, diam, open){
+  const cv = E.cv, g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, Hh = cv.height/dpr;
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,Hh);
+  const cx = W/2, cy = Hh/2, ew = Math.min(W*0.42, Hh*0.54), eh = ew*0.62, R = eh*0.92;
+  if (Math.abs(irisTexR - R) > 2 || !irisTex) buildIris(R);
+  E.lidV += (open - E.lidV) * 0.35;
+  const lid = Math.max(0.02, E.lidV);
+  const lidPath = () => { g.beginPath(); g.moveTo(cx-ew, cy); g.bezierCurveTo(cx-ew*0.45, cy-eh*1.35*lid, cx+ew*0.45, cy-eh*1.35*lid, cx+ew, cy); g.bezierCurveTo(cx+ew*0.45, cy+eh*1.2*lid, cx-ew*0.45, cy+eh*1.2*lid, cx-ew, cy); g.closePath(); };
+  // skin around the eye
+  g.fillStyle = "rgba(196,150,122,.28)"; g.beginPath(); g.ellipse(cx, cy, ew*1.12, eh*1.45, 0, 0, 7); g.fill();
+  g.save(); lidPath(); g.clip();
+  const sg = g.createRadialGradient(cx, cy, eh*0.2, cx, cy, ew); sg.addColorStop(0,"#fbfbf8"); sg.addColorStop(0.7,"#ecebe5"); sg.addColorStop(1,"#c9c2b8");
+  g.fillStyle = sg; g.fillRect(cx-ew, cy-eh*1.5, ew*2, eh*3);
+  g.drawImage(irisTex, cx-R, cy-R, R*2, R*2);
+  const pr = Math.max(0.12, Math.min(0.85, diam/11.8)) * R;
+  const pg = g.createRadialGradient(cx, cy, pr*0.2, cx, cy, pr); pg.addColorStop(0,"#020203"); pg.addColorStop(0.9,"#07090b"); pg.addColorStop(1,"#1a1410");
+  g.fillStyle = pg; g.beginPath(); g.arc(cx, cy, pr, 0, 7); g.fill();
+  g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.ellipse(cx-R*0.32, cy-R*0.34, R*0.12, R*0.08, -0.5, 0, 7); g.fill();
+  g.fillStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.arc(cx+R*0.25, cy+R*0.28, R*0.04, 0, 7); g.fill();
+  const shade = g.createLinearGradient(0, cy-eh*1.3*lid, 0, cy); shade.addColorStop(0,"rgba(60,30,20,.35)"); shade.addColorStop(1,"rgba(60,30,20,0)");
+  g.fillStyle = shade; g.fillRect(cx-ew, cy-eh*1.5, ew*2, eh*1.5);
+  g.restore();
+  lidPath(); g.strokeStyle = "rgba(90,50,35,.75)"; g.lineWidth = 2.2; g.stroke();
+  // lashes on the upper lid
+  g.strokeStyle = "rgba(40,25,20,.8)"; g.lineWidth = 1.6;
+  for (let k=1;k<16;k++){
+    const u = k/16, x = (1-u)**3*(cx-ew) + 3*(1-u)**2*u*(cx-ew*0.45) + 3*(1-u)*u*u*(cx+ew*0.45) + u**3*(cx+ew);
+    const y = (1-u)**3*cy + 3*(1-u)**2*u*(cy-eh*1.35*lid) + 3*(1-u)*u*u*(cy-eh*1.35*lid) + u**3*cy;
+    const ang = -Math.PI/2 + (u-0.5)*1.6;
+    g.beginPath(); g.moveTo(x,y); g.quadraticCurveTo(x+Math.cos(ang)*6, y+Math.sin(ang)*8, x+Math.cos(ang)*10+ (u-0.5)*6, y+Math.sin(ang)*13); g.stroke();
+  }
+}
+
+/* ---------- sampling helpers ---------- */
+function at(S, t){ const f = t*FS, i = Math.max(0, Math.min(S.n-2, Math.floor(f))), u = Math.min(1, Math.max(0, f-i)); return S.x[i]*(1-u) + S.x[i+1]*u; }
+function isBlink(S, t){ const i = Math.round(t*FS); return i>=0 && i<S.n && !S.valid[i]; }
+function phaseAt(S, t){ for (let k=PH.length-1;k>=0;k--) if (t >= S.ph[k].s) return k; return -1; }
+const fmtT = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+
+/* ---------- live fit cache ---------- */
+let fitCache = {key:"", fit:null, tr:[]};
+function liveFit(S, t){
+  const i1 = Math.round(t*FS), i0 = i1 - WIN*FS, key = S.id+":"+(i1>>2);
+  if (fitCache.key === key) return fitCache;
+  const fit = i1 > 100 ? fitSine(S, Math.max(0,i0), i1) : null;
+  const tr = troughs(S, Math.max(0,i0), i1);
+  fitCache = {key, fit, tr};
+  return fitCache;
+}
+function baseRef(S){ const m = metricsOf(S); return isFinite(m[REF].diam) ? m[REF] : m[0]; }
+
+/* ---------- strip chart ---------- */
+const trace = $("trace"); let yr = null;
+function drawTrace(chans){
+  const g = trace.getContext("2d"), dpr = devicePixelRatio||1, W = trace.width/dpr, H = trace.height/dpr;
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const padL = 46, padR = 10, padT = 8, padB = 22, pw = W-padL-padR, ph = H-padT-padB;
+  const hpView = st.view === "hp";
+  let lo = Infinity, hi = -Infinity;
+  for (const ch of chans){
+    const {S,t} = ch, i1 = Math.round(t*FS), i0 = i1 - WIN*FS;
+    for (let i=Math.max(0,i0);i<=Math.min(S.n-1,i1);i++){ const v = hpView ? S.hp[i] : S.sm[i]; if (v<lo) lo=v; if (v>hi) hi=v; }
+  }
+  if (!isFinite(lo)) { lo = hpView?-0.1:3; hi = hpView?0.1:6; }
+  if (hpView){ const m = Math.max(0.04, Math.abs(lo), Math.abs(hi))*1.15; lo=-m; hi=m; } else { const pad = Math.max(0.05,(hi-lo)*0.15); lo-=pad; hi+=pad; }
+  if (!yr) yr = {lo,hi}; else { yr.lo += (lo-yr.lo)*0.08; yr.hi += (hi-yr.hi)*0.08; }
+  const Y = v => padT + (1-(v-yr.lo)/(yr.hi-yr.lo))*ph, X = s => padL + (s/WIN)*pw;
+  g.font = "11px 'IBM Plex Mono', monospace"; g.textBaseline = "middle"; g.textAlign = "right";
+  const step = niceStep((yr.hi-yr.lo)/4);
+  for (let v=Math.ceil(yr.lo/step)*step; v<=yr.hi; v+=step){
+    const y = Y(v); g.strokeStyle = C.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(padL,y); g.lineTo(W-padR,y); g.stroke();
+    g.fillStyle = C.muted; g.fillText((hpView && v>0?"+":"")+v.toFixed(step<0.05?2:1), padL-6, y);
+  }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (let s=0;s<=WIN;s+=(pw < 420 ? 10 : 5)){ g.fillStyle = C.muted; g.fillText(s===WIN?"now":"−"+(WIN-s)+" s", X(s), H-padB+6); }
+  g.save(); g.translate(10, padT+ph/2); g.rotate(-Math.PI/2); g.textAlign="center"; g.textBaseline="top"; g.fillText(hpView?"Δ mm":"mm",0,0); g.restore();
+  g.save(); g.beginPath(); g.rect(padL, padT, pw, ph); g.clip();
+  for (const ch of chans){
+    const {S,t,col} = ch, i1 = Math.round(t*FS), i0 = i1-WIN*FS, tStart = t-WIN;
+    // signal
+    g.strokeStyle = col; g.lineWidth = 2; g.lineJoin = "round"; g.beginPath(); let pen = false;
+    for (let i=Math.max(0,i0); i<=Math.min(S.n-1,i1); i++){
+      if (!S.valid[i]) { pen = false; continue; }
+      const x = X(i/FS - tStart), y = Y(hpView ? S.hp[i] : S.sm[i]);
+      if (pen) g.lineTo(x,y); else { g.moveTo(x,y); pen = true; }
+    }
+    g.stroke();
+    const L = liveFitFor(ch);
+    if (st.showFit && L.fit){
+      const f = (!ch.cmp && st.manual) ? {A:st.mA, B:st.mB, C:st.mC, m:L.fit.m} : L.fit;
+      g.strokeStyle = ch.cmp ? col : C.wave; g.setLineDash(ch.cmp?[6,4]:[]); g.lineWidth = 2.2; g.globalAlpha = 0.95; g.beginPath();
+      for (let k=0;k<=pw;k+=2){
+        const tt = tStart + (k/pw)*WIN, ii = Math.min(S.n-1, Math.max(0, Math.round(tt*FS)));
+        const wave = f.A*Math.sin(f.B*(tt - f.C));
+        const v = hpView ? f.m + wave : S.ma[ii] + f.m + wave;
+        k ? g.lineTo(padL+k, Y(v)) : g.moveTo(padL+k, Y(v));
+      }
+      g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    }
+    if (st.showVertex && !ch.cmp){
+      g.strokeStyle = C.vertex; g.fillStyle = C.vertex; g.lineWidth = 1.8;
+      for (const q of L.tr){
+        const off = hpView ? -S.ma[q.i] : 0;
+        g.beginPath();
+        for (let k=-8;k<=8;k++){ const tt = q.h + k*0.075, v = q.a*(tt-q.h)**2 + q.k + off; k===-8 ? g.moveTo(X(tt-tStart),Y(v)) : g.lineTo(X(tt-tStart),Y(v)); }
+        g.stroke(); g.beginPath(); g.arc(X(q.h-tStart), Y(q.k+off), 3.5, 0, 7); g.fill();
+      }
+    }
+  }
+  g.restore();
+}
+function liveFitFor(ch){ return ch.cmp ? cmpFit(ch.S, ch.t) : liveFit(ch.S, ch.t); }
+const cmpCache = new Map();         // one entry per compared channel position
+function cmpFit(S, t){
+  const i1 = Math.round(t*FS), key = S.id+"c"+(i1>>2);
+  if (!cmpCache.has(key)){ if (cmpCache.size > 8) cmpCache.clear(); cmpCache.set(key, {fit: fitSine(S, Math.max(0,i1-WIN*FS), i1), tr:[]}); }
+  return cmpCache.get(key);
+}
+function niceStep(r){ const p = 10**Math.floor(Math.log10(r)), m = r/p; return (m<1.5?1:m<3?2:m<7?5:10)*p; }
+
+/* ---------- timeline ---------- */
+const tl = $("timeline"), tlCache = document.createElement("canvas"); let tlDirty = true;
+function buildTimeline(){
+  const S = st.S, dpr = devicePixelRatio||1; tlCache.width = tl.width; tlCache.height = tl.height;
+  const g = tlCache.getContext("2d"), W = tl.width/dpr, H = tl.height/dpr; g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle = C["surface-2"]; g.fillRect(0,0,W,H);
+  for (const p of S.ph){ g.fillStyle = p.col; g.globalAlpha = 0.18; g.fillRect(p.s/S.dur*W, 0, (p.e-p.s)/S.dur*W, H); g.globalAlpha = 1; g.fillRect(p.s/S.dur*W, H-4, (p.e-p.s)/S.dur*W, 4); }
+  let lo=Infinity, hi=-Infinity; for (let i=0;i<S.n;i++) if (S.valid[i]) { lo=Math.min(lo,S.x[i]); hi=Math.max(hi,S.x[i]); }
+  g.fillStyle = C.ink; g.globalAlpha = 0.55;
+  const cols = Math.floor(W);
+  for (let c=0;c<cols;c++){
+    const a = Math.floor(c/cols*S.n), b = Math.floor((c+1)/cols*S.n); let mn=Infinity, mx=-Infinity;
+    for (let i=a;i<b;i++) if (S.valid[i]) { mn=Math.min(mn,S.x[i]); mx=Math.max(mx,S.x[i]); }
+    if (!isFinite(mn)) continue;
+    const y1 = 4+(1-(mx-lo)/(hi-lo))*(H-14), y2 = 4+(1-(mn-lo)/(hi-lo))*(H-14);
+    g.fillRect(c, y1, 1, Math.max(1,y2-y1));
+  }
+  g.globalAlpha = 1; g.font = "600 10.5px Figtree, sans-serif"; g.textBaseline = "top";
+  for (const p of S.ph){ const x = p.s/S.dur*W + 3, w = (p.e-p.s)/S.dur*W; if (w > 36) { g.fillStyle = p.col; g.fillText(w>70?p.short:p.short.replace(/ecov /,""), x, 3); } }
+  tlDirty = false;
+}
+function drawTimeline(){
+  if (tlDirty) buildTimeline();
+  const g = tl.getContext("2d"), dpr = devicePixelRatio||1, W = tl.width/dpr, H = tl.height/dpr;
+  g.setTransform(1,0,0,1,0,0); g.drawImage(tlCache, 0, 0); g.setTransform(dpr,0,0,dpr,0,0);
+  const marks = st.compare ? [[cmpTimes().a, PH[REF].col], [cmpTimes().b, PH[st.cmpK].col]] : [[st.t, C.accent]];
+  for (const [t,col] of marks){
+    const x = t/st.S.dur*W;
+    g.fillStyle = col; g.globalAlpha = 0.18; g.fillRect(x - WIN/st.S.dur*W, 0, WIN/st.S.dur*W, H); g.globalAlpha = 1;
+    g.fillRect(x-1.5, 0, 3, H); g.beginPath(); g.arc(x, H/2, 6, 0, 7); g.fill();
+    g.strokeStyle = C.surface; g.lineWidth = 2; g.stroke();
+  }
+}
+let dragging = false;
+function scrub(e){
+  const r = tl.getBoundingClientRect(), u = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
+  if (st.compare){ setCompare(false); }
+  st.t = u*st.S.dur; yr = null;
+}
+tl.addEventListener("pointerdown", e => { dragging = true; tl.setPointerCapture(e.pointerId); scrub(e); });
+tl.addEventListener("pointermove", e => { if (dragging) scrub(e); });
+tl.addEventListener("pointerup", () => dragging = false);
+tl.addEventListener("pointercancel", () => dragging = false);
+
+/* ---------- compare mode ---------- */
+function cmpTimes(){
+  const S = st.S, r = S.ph[REF], p = S.ph[st.cmpK], len = Math.min(r.e-r.s, p.e-p.s);
+  const tau = WIN + (st.tau % Math.max(1, len-WIN));
+  return {a: r.s + tau, b: p.s + tau, tau};
+}
+function setCompare(on){
+  st.compare = on; $("compare").checked = on; $("cmpRow").hidden = !on; $("boxB").hidden = !on;
+  $("eyes").classList.toggle("compare", on); st.tau = 0; yr = null;
+  $("tlnote").textContent = on ? "Comparing the same stretch of each phase, second by second (loops)" : "Drag the timeline to scrub the full session";
+  $("graphTitle").textContent = on ? "Working baseline vs. " + PH[st.cmpK].name + ": hippus waves overlaid" : "Last 30 seconds of pupil signal";
+  if (on && st.view === "raw") setView("hp");
+  layout();
+}
+
+/* ---------- UI wiring ---------- */
+const sel = $("subject");
+subjects.forEach((S,k) => sel.add(new Option(S.id.toUpperCase(), k)));
+$("nCount").textContent = subjects.length;
+sel.onchange = () => { st.S = subjects[+sel.value]; st.t = Math.min(st.t, st.S.dur-1); tlDirty = true; yr = null; fitCache.key = ""; buildChips(); showInfo(); };
+function showInfo(){
+  const S = st.S, bits = [];
+  if (S.cdrisc != null) bits.push(`Resilience <b>${S.cdrisc}</b>/40`);
+  if (S.sex) bits.push(S.sex === "F" ? "female" : "male");
+  if (S.age) bits.push(S.age.replace("-", "–") + " yrs");
+  bits.push(S.src === "tobii50" ? "Tobii 50 Hz file" : "250 Hz stream");
+  $("pinfo").innerHTML = bits.join(" · ");
+}
+function buildChips(){
+  const box = $("phaseChips"); box.innerHTML = "";
+  PH.forEach((p,k) => {
+    const b = document.createElement("button"); b.className = "chip"; b.style.color = `var(${p.c})`;
+    b.innerHTML = `<i style="background:var(${p.c})"></i><span style="color:var(--ink)">${p.name}</span>`;
+    const empty = st.S.ph[k].e - st.S.ph[k].s < 20;
+    b.disabled = empty; if (empty) { b.style.opacity = 0.4; b.title = "Not recorded for this participant"; }
+    b.onclick = () => jumpPhase(k); box.appendChild(b);
+  });
+  const cp = $("cmpPhase"); cp.innerHTML = ""; PH.forEach((p,k) => { if (k !== REF) cp.add(new Option(p.name, k)); }); cp.value = st.cmpK;
+}
+function jumpPhase(k){ const p = st.S.ph[k]; if (p.e - p.s < 20) return; if (st.compare) setCompare(false); st.t = Math.min(p.e-0.5, p.s + WIN); yr = null; }
+$("cmpPhase").onchange = e => { st.cmpK = +e.target.value; setCompare(true); };
+$("compare").onchange = e => setCompare(e.target.checked);
+function setPlaying(on){ st.playing = on; $("play").setAttribute("aria-label", on?"Pause":"Play"); $("playIcon").innerHTML = on ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M7 5v14l12-7z"/>'; }
+$("play").onclick = () => setPlaying(!st.playing);
+$("back").onclick = () => skip(-10); $("fwd").onclick = () => skip(10);
+function skip(d){ if (st.compare) st.tau = Math.max(0, st.tau + d); else st.t = Math.min(st.S.dur, Math.max(0, st.t + d)); }
+$("speeds").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; st.speed = +b.dataset.s; for (const x of $("speeds").children) x.setAttribute("aria-pressed", x===b); });
+function setView(v){ st.view = v; $("vRaw").setAttribute("aria-pressed", v==="raw"); $("vHp").setAttribute("aria-pressed", v==="hp"); yr = null; }
+$("vRaw").onclick = () => { if (st.compare) setCompare(false); setView("raw"); };
+$("vHp").onclick = () => setView("hp");
+$("gain").oninput = e => { st.gain = +e.target.value; $("oGain").textContent = "×"+st.gain; };
+$("showFit").onchange = e => st.showFit = e.target.checked;
+$("showVertex").onchange = e => st.showVertex = e.target.checked;
+$("manual").onchange = e => st.manual = e.target.checked;
+const sliders = () => { st.mA = +$("sA").value; st.mB = +$("sB").value; st.mC = +$("sC").value; $("oA").textContent = st.mA.toFixed(3)+" mm"; $("oB").textContent = st.mB.toFixed(2)+" rad/s"; $("oC").textContent = st.mC.toFixed(2)+" s"; $("manual").checked = st.manual = true; };
+["sA","sB","sC"].forEach(id => $(id).oninput = sliders);
+$("copyFit").onclick = () => { const f = liveFit(st.S, st.t).fit; if (!f) return; $("sA").value = f.A; $("sB").value = f.B; $("sC").value = Math.min(12.6, f.C); sliders(); };
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input,select,textarea,button,.term") || currentView !== "sim" || tourI >= 0) return;
+  if (e.code === "Space"){ e.preventDefault(); setPlaying(!st.playing); }
+  else if (e.key === "ArrowLeft") skip(-10); else if (e.key === "ArrowRight") skip(10);
+  else if (/^[1-6]$/.test(e.key)) jumpPhase(+e.key-1);
+});
+
+/* ---------- tabs ---------- */
+let currentView = "sim";
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showView(b.dataset.view));
+function showView(v){
+  currentView = v;
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === v));
+  $("view-sim").hidden = v !== "sim"; $("view-res").hidden = v !== "res"; $("view-about").hidden = v !== "about"; $("view-gloss").hidden = v !== "gloss"; $("view-me").hidden = v !== "me";
+  if (v === "me") requestAnimationFrame(initMe);
+  try { history.replaceState(null, "", "#" + VIEW_TOKENS[v]); } catch {}
+  if (v === "res") { rDirty = true; requestAnimationFrame(renderResults); }
+  if (v === "sim") layout();
+}
+
+/* ---------- readouts (throttled) ---------- */
+let lastUI = 0;
+function updateReadouts(now, dA, dB, kA, kB){
+  if (now - lastUI < 120) return; lastUI = now;
+  const S = st.S, tA = st.compare ? cmpTimes().a : st.t;
+  $("dA").textContent = dA.toFixed(2);
+  setTag("tagA", kA, st.compare ? "" : "");
+  if (st.compare){ $("dB").textContent = dB.toFixed(2); setTag("tagB", kB); }
+  $("clock").textContent = st.compare ? `${fmtT(cmpTimes().tau)} into each phase` : `${fmtT(st.t)} / ${fmtT(S.dur)}`;
+  document.querySelectorAll("#phaseChips .chip").forEach((c,k) => c.setAttribute("aria-current", !st.compare && k === kA));
+  const ch = st.compare ? {S, t: cmpTimes().b, cmp:true} : {S, t: st.t};
+  const L = st.compare ? cmpFit(S, ch.t) : liveFit(S, st.t), f = L.fit;
+  if (f){
+    const useM = st.manual && !st.compare, A = useM ? st.mA : f.A, B = useM ? st.mB : f.B, Cs = useM ? st.mC : f.C;
+    const r2 = useM ? r2For(S, Math.round(st.t*FS)-WIN*FS, Math.round(st.t*FS), A, B, Cs) : f.r2;
+    $("eqSine").innerHTML = `y = <span class="v vw">${A.toFixed(3)}</span>·sin(<span class="v vw">${B.toFixed(2)}</span>(t − <span class="v vw">${Cs.toFixed(2)}</span>)) + <span class="v vw">${f.D.toFixed(2)}</span>`;
+    $("kA").textContent = A.toFixed(3)+" mm"; $("kB").textContent = B.toFixed(2)+" rad/s"; $("kF").textContent = (B/2/Math.PI).toFixed(3)+" Hz";
+    $("kT").textContent = (2*Math.PI/B).toFixed(1)+" s"; $("kD").textContent = f.D.toFixed(2)+" mm";
+    $("kR2").textContent = Math.max(0,r2).toFixed(2) + (useM ? ` (auto ${f.r2.toFixed(2)})` : ""); $("r2fill").style.width = Math.max(0,Math.min(1,r2))*100+"%";
+  }
+  const tr = st.compare ? troughs(S, Math.round(ch.t*FS)-WIN*FS, Math.round(ch.t*FS)) : L.tr;
+  if (tr.length){
+    const q = tr[tr.length-1], am = median(tr.map(z=>z.a));
+    $("eqQuad").innerHTML = `y = <span class="v vv">${q.a.toFixed(2)}</span>(t − <span class="v vv">${q.h.toFixed(1)}</span>)² + <span class="v vv">${q.k.toFixed(2)}</span>`;
+    $("qa").textContent = am.toFixed(2)+" mm/s²"; $("q2a").textContent = (2*am).toFixed(2)+" mm/s²";
+  } else { $("eqQuad").innerHTML = "y = a(t − h)² + k <span style='color:var(--muted)'>· no trough in window</span>"; $("qa").textContent = "–"; $("q2a").textContent = "–"; }
+  $("qn").textContent = (tr.length * 60/WIN).toFixed(0);
+  // stress index vs this person's working baseline (30 = same as Working)
+  const R = baseRef(S);
+  if (f && isFinite(R.diam)){
+    const relD = (f.D - R.diam)/R.diam, relA = isFinite(R.A) ? f.A/R.A - 1 : 0, relB = isFinite(R.B) ? f.B/R.B - 1 : 0;
+    const idx = Math.max(0, Math.min(100, 30 + 300*relD + 25*relA + 25*relB));
+    st.stress += (idx - st.stress)*0.3;
+    $("score").textContent = Math.round(st.stress);
+    const lv = st.stress < 40 ? ["Calm","var(--ok)"] : st.stress < 65 ? ["Elevated","var(--warn)"] : ["High stress","var(--bad)"];
+    $("lvl").textContent = lv[0]; $("lvl").style.color = lv[1];
+    $("needle").style.transform = `rotate(${-90 + st.stress*1.8}deg)`;
+  }
+}
+function setTag(id, k){ const el = $(id); if (k < 0) { el.innerHTML = "<i></i>Before recording"; el.style.color = "var(--muted)"; return; } el.style.color = `var(${PH[k].c})`; el.innerHTML = `<i></i><span style="color:var(--ink)">${PH[k].name}</span>`; }
+
+/* ---------- main loop ---------- */
+let prev = performance.now();
+function frame(now){
+  const dt = Math.min(0.1, (now - prev)/1000); prev = now;
+  if (currentView === "sim"){
+    const S = st.S;
+    if (st.playing){
+      if (st.compare) st.tau += dt*st.speed;
+      else { st.t += dt*st.speed; if (st.t >= S.dur) { st.t = S.dur; setPlaying(false); } }
+    }
+    let chans, dA, dB = 0, kA, kB = -1;
+    if (st.compare){
+      const {a,b} = cmpTimes();
+      chans = [{S, t:a, col:PH[REF].col, cmp:true}, {S, t:b, col:PH[st.cmpK].col, cmp:true}];
+      dA = at(S,a); dB = at(S,b); kA = REF; kB = st.cmpK;
+      eyeFor("A", S, a); eyeFor("B", S, b);
+    } else {
+      chans = [{S, t:st.t, col:C.ink}];
+      dA = at(S, st.t); kA = phaseAt(S, st.t);
+      eyeFor("A", S, st.t);
+    }
+    drawTrace(chans); drawTimeline();
+    updateReadouts(now, dA, dB, kA, kB);
+    renderLegend();
+  }
+  requestAnimationFrame(frame);
+}
+function eyeFor(which, S, t){
+  // Eye stays open: during signal gaps the pupil follows the bridged (interpolated) value instead of blinking.
+  const d = at(S, t), disp = S.mean + (d - S.mean)*st.gain;
+  drawEye(eyes[which], disp, 1);
+}
+let legendKey = "";
+function renderLegend(){
+  const key = st.compare+"|"+st.cmpK+"|"+st.showFit+"|"+st.showVertex+"|"+st.manual;
+  if (key === legendKey) return; legendKey = key;
+  const L = $("legend");
+  if (st.compare) L.innerHTML = `<span><i style="background:var(--work)"></i>Working baseline</span><span><i style="background:var(${PH[st.cmpK].c})"></i>${PH[st.cmpK].name}</span><span>Dashed lines: fitted sine for each</span>`;
+  else L.innerHTML = `<span><i style="background:var(--ink)"></i>Pupil signal</span>` + (st.showFit?`<span><i style="background:var(--wave)"></i>${st.manual?"Your sine model":"Fitted sine y = A·sin(B(t − C)) + D"}</span>`:"") + (st.showVertex?`<span><i style="background:var(--vertex)"></i>Constriction vertex y = a(t − h)² + k</span>`:"");
+}
+
+/* ---------- results ---------- */
+let rDirty = true;
+function tTest(a, b){
+  const d = a.map((v,i)=>v-b[i]).filter(isFinite), n = d.length; if (n < 2) return null;
+  const m = d.reduce((s,v)=>s+v,0)/n, sd = Math.sqrt(d.reduce((s,v)=>s+(v-m)**2,0)/(n-1)), t = m/(sd/Math.sqrt(n)), df = n-1;
+  const half = tinv(0.975, df)*sd/Math.sqrt(n);
+  return {m, t, df, p: 2*(1 - tcdf(Math.abs(t), df)), n, d: m/sd, lo: m-half, hi: m+half, up: d.filter(v=>v>0).length};
+}
+function tinv(q, df){ let lo = 0, hi = 60; for (let i=0;i<60;i++){ const mid = (lo+hi)/2; if (tcdf(mid, df) < q) lo = mid; else hi = mid; } return (lo+hi)/2; }
+function pearson(x, y){
+  const n = x.length; if (n < 3) return null;
+  const mx = x.reduce((s,v)=>s+v,0)/n, my = y.reduce((s,v)=>s+v,0)/n;
+  let sxy=0,sxx=0,syy=0; for (let i=0;i<n;i++){ sxy+=(x[i]-mx)*(y[i]-my); sxx+=(x[i]-mx)**2; syy+=(y[i]-my)**2; }
+  const r = sxy/Math.sqrt(sxx*syy), t = r*Math.sqrt((n-2)/Math.max(1e-12,1-r*r));
+  return {r, n, p: 2*(1 - tcdf(Math.abs(t), n-2)), slope: sxy/sxx, icpt: my - sxy/sxx*mx};
+}
+const sizeWord = d => { const a = Math.abs(d); return a < 0.2 ? "negligible" : a < 0.5 ? "small" : a < 0.8 ? "medium" : "large"; };
+const fmtP = p => p < 0.001 ? "p < 0.001" : "p = " + p.toFixed(3);
+const sgn = (v, dec) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(dec);
+function tcdf(t, df){ const x = df/(df+t*t); return 1 - 0.5*ibeta(x, df/2, 0.5); }
+function ibeta(x, a, b){
+  if (x<=0) return 0; if (x>=1) return 1;
+  const lb = lgamma(a+b)-lgamma(a)-lgamma(b), front = Math.exp(Math.log(x)*a + Math.log(1-x)*b + lb);
+  if (x < (a+1)/(a+b+2)) return front*betacf(x,a,b)/a;
+  return 1 - front*betacf(1-x,b,a)/b;
+}
+function betacf(x,a,b){
+  let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap; if (Math.abs(d)<1e-30) d=1e-30; d=1/d; let h=d;
+  for (let m=1;m<=200;m++){ const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2)); d=1+aa*d; if(Math.abs(d)<1e-30)d=1e-30; c=1+aa/c; if(Math.abs(c)<1e-30)c=1e-30; d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2)); d=1+aa*d; if(Math.abs(d)<1e-30)d=1e-30; c=1+aa/c; if(Math.abs(c)<1e-30)c=1e-30; d=1/d; const del=d*c; h*=del; if (Math.abs(del-1)<3e-12) break; }
+  return h;
+}
+function lgamma(z){ const g=7, cf=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (z<0.5) return Math.log(Math.PI/Math.sin(Math.PI*z)) - lgamma(1-z); z-=1; let x=cf[0]; for (let i=1;i<g+2;i++) x+=cf[i]/(z+i); const t=z+g+0.5; return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x); }
+const UNITS = {B:"rad/s", A:"mm", diam:"mm", qa:"mm/s²", rate:"/min", r2:""};
+const DEC = {B:2, A:3, diam:2, qa:2, rate:1, r2:2};
+function stressVal(m, key){ const a = m[2][key], b = m[4][key]; return isFinite(a) && isFinite(b) ? (a+b)/2 : isFinite(a) ? a : b; }
+// Fitting all participants takes a moment, so it runs in small slices between frames.
+let rReady = false, rBusy = false;
+function ensureMetrics(done){
+  if (rReady) return done();
+  if (rBusy) return; rBusy = true;
+  let k = 0;
+  const step = () => {
+    const t0 = performance.now();
+    while (k < subjects.length && performance.now() - t0 < 25){ metricsOf(subjects[k]); k++; }
+    $("rProgText").textContent = `Fitting waves for participant ${k} of ${subjects.length}…`;
+    $("rProgFill").style.width = (k/subjects.length*100) + "%";
+    if (k < subjects.length) setTimeout(step, 0);
+    else { rReady = true; rBusy = false; $("rProgress").hidden = true; done(); }
+  };
+  step();
+}
+function renderResults(){
+  if (!rReady){ ensureMetrics(() => { rDirty = true; renderResults(); }); return; }
+  if (!rDirty) return; rDirty = false;
+  const all = subjects.map(S => ({S, m: metricsOf(S)}));
+  // hypothesis cards
+  const rows = [
+    ["B", "Wave constant B", "Hypothesis predicts higher B (faster oscillation) under stress."],
+    ["A", "Amplitude A", "Hypothesis predicts larger A (taller waves) under stress."],
+    ["diam", "Mean pupil size", "Classic stress marker: the pupil dilates under load."],
+    ["qa", "Vertex curvature a", "Sharper constriction troughs would mean faster turnaround."]
+  ];
+  const tests = {};
+  $("hypStats").innerHTML = rows.map(([k, name, why]) => {
+    const rest = all.map(o=>o.m[0][k]), work = all.map(o=>o.m[REF][k]), str = all.map(o=>stressVal(o.m,k));
+    const t1 = tTest(str, work), t2 = tTest(str, rest), u = UNITS[k], dec = DEC[k];
+    tests[k] = t1;
+    const line = (lab, t) => t ? `${lab}: Δ = ${sgn(t.m,dec)} ${u}, t(${t.df}) = ${t.t.toFixed(2)}, ${fmtP(t.p).replace("<","&lt;")}` : `${lab}: not enough data`;
+    const sig = t1 && t1.p < 0.05, dir = t1 && t1.m > 0 ? "increase" : "decrease";
+    return `<div class="stat"><span class="lab">${name}</span>
+      <span class="num mono">${t1 ? sgn(t1.m,dec) : "–"} <small style="font-size:14px;color:var(--muted)">${u}</small></span>
+      <span class="sub">Stress minus Working, mean of ${t1 ? t1.n : 0} participants</span>
+      <span class="verdict ${sig?"yes":"no"}">${sig ? `Significant ${dir} (${fmtP(t1.p)})` : "Not significant at p < 0.05"}</span>
+      ${t1 ? `<span class="sub mono" style="font-size:12px">95% CI ${sgn(t1.lo,dec)} to ${sgn(t1.hi,dec)}<br>d = ${t1.d.toFixed(2)} (${sizeWord(t1.d)}) · higher in ${t1.up} of ${t1.n}</span>` : ""}
+      <span class="sub mono" style="font-size:12px">${line("vs working", t1)}<br>${line("vs rest", t2)}</span>
+      <span class="sub">${why}</span></div>`;
+  }).join("");
+  renderConclusion(tests, all.length);
+  drawResultsChart(all);
+  renderLight(all);
+  drawOnset();
+  drawScatter(all);
+  // table
+  const k = $("metric").value, dec = DEC[k];
+  let h = `<thead><tr><th>Participant</th><th>CD-RISC</th>${PH.map(p=>`<th style="color:var(${p.c})">${p.short}</th>`).join("")}<th>Stress − Work</th></tr></thead><tbody>`;
+  for (const o of all){ const d = stressVal(o.m,k) - o.m[REF][k]; h += `<tr><td>${o.S.id.toUpperCase()}${o.S.src==="tobii50"?" †":""}</td><td>${o.S.cdrisc ?? "–"}</td>${o.m.map(x=>`<td>${isFinite(x[k])?x[k].toFixed(dec):"–"}</td>`).join("")}<td>${isFinite(d)?(d>=0?"+":"")+d.toFixed(dec):"–"}</td></tr>`; }
+  const meanOf = j => { const v = all.map(o=>o.m[j][k]).filter(isFinite); return v.reduce((s,x)=>s+x,0)/v.length; };
+  const md = all.map(o=>stressVal(o.m,k)-o.m[REF][k]).filter(isFinite);
+  h += `<tr class="mean"><td>Mean</td><td></td>${PH.map((_,j)=>`<td>${meanOf(j).toFixed(dec)}</td>`).join("")}<td>${(md.reduce((s,x)=>s+x,0)/md.length).toFixed(dec)}</td></tr></tbody>`;
+  h += `<caption style="caption-side:bottom;text-align:left;padding-top:8px;font-size:12.5px;color:var(--muted)">† Pupil from the separate Tobii 50 Hz file, aligned at recording start. CD-RISC: resilience score, 0–40.</caption>`;
+  $("rtable").innerHTML = h;
+  $("rTitle").textContent = $("metric").selectedOptions[0].text + " across the six phases";
+}
+$("metric").onchange = () => { rDirty = true; renderResults(); };
+// Lighting explainer: group-mean diameter per phase, plus how many people dilate from Working to Stress.
+function renderLight(all){
+  const means = PH.map((_,j) => { const v = all.map(o=>o.m[j].diam).filter(isFinite); return v.reduce((s,x)=>s+x,0)/v.length; });
+  const lo = Math.min(...means) - 0.3, hi = Math.max(...means);
+  $("lightBars").innerHTML = PH.map((p,j) => `<div class="lbar"><span>${p.short}</span><div class="track"><div class="fill" style="width:${Math.max(4,(means[j]-lo)/(hi-lo)*100)}%;background:var(${p.c})"></div></div><span class="val">${means[j].toFixed(2)} mm</span></div>`).join("");
+  const pairs = all.map(o => [stressVal(o.m,"diam"), o.m[1].diam]).filter(([s,w]) => isFinite(s) && isFinite(w));
+  const up = pairs.filter(([s,w]) => s > w).length, dW = pairs.reduce((s,[a,b])=>s+a-b,0)/pairs.length;
+  const dR = means[0] - means[1];
+  $("lightNote").innerHTML = `Rest is ${dR.toFixed(2)} mm larger than Working, the lighting effect. From Working to Stress the pupil changes by ${dW>=0?"+":""}${dW.toFixed(2)} mm on average, and it gets larger under stress for <b>${up} of ${pairs.length}</b> participants. Bars start at ${lo.toFixed(1)} mm so the differences are visible.`;
+}
+// Plain-language answer to the research question, written from the Stress-vs-Working tests.
+function renderConclusion(T, nAll){
+  const B = T.B, A = T.A, D = T.diam, Q = T.qa;
+  const up = t => t && t.p < 0.05 && t.m > 0, down = t => t && t.p < 0.05 && t.m < 0;
+  let ans;
+  if (up(B) && up(A)) ans = "Supported: under stress the pupil's hippus waves became both taller (A) and faster (B).";
+  else if (up(B)) ans = "Partly supported: the waves got faster under stress (B rose), but not significantly taller.";
+  else if (up(A)) ans = "Partly supported: the waves got taller under stress (A rose), but the wave constant B did not shift significantly.";
+  else if (down(B)) ans = "Not supported: the wave constant B moved the opposite way, slowing under stress.";
+  else ans = "Not supported: the wave constant B did not shift significantly under stress.";
+  if (!up(B) && !up(A) && up(D)) ans += " The stress signal shows up in pupil size instead: the pupil widened.";
+  $("conclAnswer").textContent = ans;
+  const fact = (lab, t, u, dec) => `<div class="kfact"><span class="lab">${lab}</span><span class="num">${t ? sgn(t.m,dec)+" "+u : "–"}</span><span class="sub">${t ? `${fmtP(t.p)} · d = ${t.d.toFixed(2)} (${sizeWord(t.d)})` : "not enough data"}</span></div>`;
+  $("conclFacts").innerHTML = fact("Wave constant B", B, "rad/s", 2) + fact("Amplitude A", A, "mm", 3) + fact("Pupil size", D, "mm", 2) + fact("Vertex curvature a", Q, "mm/s²", 2);
+  const found = [up(A) && "taller waves (A)", up(B) && "faster waves (B)", up(Q) && "sharper constriction vertices (a)"].filter(Boolean);
+  $("conclText").innerHTML = `Based on ${B ? B.n : nAll} participants, comparing the two stress phases with each person's own Working baseline (same screen, same light). ` +
+    (found.length ? `The algebraic models picked up a measurable stress effect: ${found.join(", ")}. ` : `The sine and parabola models describe each person's pupil rhythm, but their parameters did not change reliably with stress. `) +
+    (up(D) ? `Pupil size rose by ${sgn(D.m,2)} mm, the clearest single stress marker here. ` : "") +
+    `Limits: lighting differs between Rest and the task, so Rest is not used as the main control; 13 participants have approximate phase timing; and p-values should be read together with effect size d.`;
+}
+let onK = 2;
+$("onsetSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; onK = +b.dataset.k; for (const x of $("onsetSeg").children) x.setAttribute("aria-pressed", x === b); drawOnset(); });
+function drawOnset(){
+  const PRE = 60*FS, POST = 120*FS, L = PRE + POST, sum = new Float64Array(L), sq = new Float64Array(L), cnt = new Uint16Array(L);
+  let used = 0;
+  for (const S of subjects){
+    const p = S.ph[onK]; if (p.e - p.s < 60) continue;
+    const i0 = Math.round(p.s*FS); if (i0 - PRE < 0 || i0 + POST > S.n) continue;
+    let b = 0, bc = 0; for (let i=i0-30*FS;i<i0;i++) if (S.valid[i]) { b += S.sm[i]; bc++; }
+    if (bc < 100) continue; b /= bc; used++;
+    for (let j=0;j<L;j++){ const i = i0 - PRE + j; if (!S.valid[i]) continue; const v = S.sm[i] - b; sum[j] += v; sq[j] += v*v; cnt[j]++; }
+  }
+  const mean = new Float64Array(L).fill(NaN), ci = new Float64Array(L).fill(NaN);
+  for (let j=0;j<L;j++) if (cnt[j] >= 3){ const m = sum[j]/cnt[j], v = Math.max(0, sq[j]/cnt[j] - m*m) * cnt[j]/(cnt[j]-1); mean[j] = m; ci[j] = 1.96*Math.sqrt(v/cnt[j]); }
+  const cv = $("onset"); sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const padL = 56, padR = 14, padT = 14, padB = 34, pw = W-padL-padR, ph = H-padT-padB;
+  let lo = 0, hi = 0; for (let j=0;j<L;j++) if (isFinite(mean[j])) { lo = Math.min(lo, mean[j]-ci[j]); hi = Math.max(hi, mean[j]+ci[j]); }
+  const pad = Math.max(0.02,(hi-lo)*0.1); lo -= pad; hi += pad;
+  const X = s => padL + (s+60)/180*pw, Y = v => padT + (1-(v-lo)/(hi-lo))*ph;
+  g.font = "11px 'IBM Plex Mono', monospace"; g.textAlign = "right"; g.textBaseline = "middle";
+  const step = niceStep((hi-lo)/5);
+  for (let v=Math.ceil(lo/step)*step; v<=hi; v+=step){ g.strokeStyle = C.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(padL,Y(v)); g.lineTo(W-padR,Y(v)); g.stroke(); g.fillStyle = C.muted; g.fillText((v>0?"+":"")+v.toFixed(step<0.05?2:1), padL-6, Y(v)); }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (let s=-60;s<=120;s+=30){ g.fillStyle = C.muted; g.fillText((s>0?"+":"")+s+" s", X(s), H-padB+8); }
+  g.save(); g.translate(12, padT+ph/2); g.rotate(-Math.PI/2); g.textAlign = "center"; g.fillText("Δ pupil (mm)", 0, 0); g.restore();
+  const col = PH[onK].col, prevCol = PH[onK-1].col;
+  g.fillStyle = prevCol; g.globalAlpha = 0.07; g.fillRect(padL, padT, X(0)-padL, ph); g.fillStyle = col; g.fillRect(X(0), padT, W-padR-X(0), ph); g.globalAlpha = 1;
+  g.strokeStyle = C.muted; g.setLineDash([4,4]); g.beginPath(); g.moveTo(padL, Y(0)); g.lineTo(W-padR, Y(0)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = col; g.globalAlpha = 0.22; g.beginPath(); let st0 = true;
+  for (let j=0;j<L;j++){ if (!isFinite(mean[j])) continue; const x = X(j/FS-60), y = Y(mean[j]+ci[j]); st0 ? (g.moveTo(x,y), st0=false) : g.lineTo(x,y); }
+  for (let j=L-1;j>=0;j--){ if (!isFinite(mean[j])) continue; g.lineTo(X(j/FS-60), Y(mean[j]-ci[j])); }
+  g.closePath(); g.fill(); g.globalAlpha = 1;
+  g.strokeStyle = col; g.lineWidth = 2.2; g.beginPath(); st0 = true;
+  for (let j=0;j<L;j++){ if (!isFinite(mean[j])) { st0 = true; continue; } const x = X(j/FS-60), y = Y(mean[j]); st0 ? (g.moveTo(x,y), st0=false) : g.lineTo(x,y); }
+  g.stroke();
+  g.strokeStyle = C.ink; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(0), padT); g.lineTo(X(0), padT+ph); g.stroke();
+  g.fillStyle = C.ink; g.font = "600 12px Figtree, sans-serif"; g.textAlign = "left"; g.textBaseline = "top"; g.fillText(PH[onK].name + " starts", X(0)+6, padT+4);
+  let a = 0, ac = 0; for (let j=PRE+10*FS;j<L;j++) if (isFinite(mean[j])) { a += mean[j]; ac++; }
+  $("onsetNote").textContent = used ? `${used} participants with full data around this moment. Average change from 10 s to 120 s after the start: ${sgn(a/ac,3)} mm. Times for p25–p37 can be off by up to about 30 s, which blurs the curve slightly.` : "Not enough data around this moment.";
+}
+$("scMetric").onchange = () => drawScatter(subjects.map(S => ({S, m: metricsOf(S)})));
+function drawScatter(all){
+  const k = $("scMetric").value, dec = DEC[k];
+  const pts = all.filter(o => o.S.cdrisc != null).map(o => ({x: +o.S.cdrisc, y: stressVal(o.m,k) - o.m[REF][k], tob: o.S.src === "tobii50", id: o.S.id})).filter(p => isFinite(p.y));
+  const cv = $("scatter"); sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  if (pts.length < 3) { $("scNote").textContent = "Not enough participants yet."; return; }
+  const padL = 60, padR = 14, padT = 14, padB = 40, pw = W-padL-padR, ph = H-padT-padB;
+  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+  const xlo = Math.min(...xs)-2, xhi = Math.max(...xs)+2; let ylo = Math.min(0,...ys), yhi = Math.max(0,...ys); const pad = (yhi-ylo)*0.12 || 0.05; ylo -= pad; yhi += pad;
+  const X = v => padL + (v-xlo)/(xhi-xlo)*pw, Y = v => padT + (1-(v-ylo)/(yhi-ylo))*ph;
+  g.font = "11px 'IBM Plex Mono', monospace"; g.textAlign = "right"; g.textBaseline = "middle";
+  const step = niceStep((yhi-ylo)/5);
+  for (let v=Math.ceil(ylo/step)*step; v<=yhi; v+=step){ g.strokeStyle = C.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(padL,Y(v)); g.lineTo(W-padR,Y(v)); g.stroke(); g.fillStyle = C.muted; g.fillText((v>0?"+":"")+v.toFixed(dec), padL-6, Y(v)); }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (let v=Math.ceil(xlo/5)*5; v<=xhi; v+=5){ g.fillStyle = C.muted; g.fillText(v, X(v), H-padB+6); }
+  g.fillText("CD-RISC resilience score (0–40)", padL+pw/2, H-14);
+  g.strokeStyle = C.muted; g.setLineDash([4,4]); g.beginPath(); g.moveTo(padL,Y(0)); g.lineTo(W-padR,Y(0)); g.stroke(); g.setLineDash([]);
+  const r = pearson(xs, ys);
+  if (r){ g.strokeStyle = C.accent; g.lineWidth = 2.5; g.beginPath(); g.moveTo(X(xlo), Y(r.icpt + r.slope*xlo)); g.lineTo(X(xhi), Y(r.icpt + r.slope*xhi)); g.stroke(); }
+  for (const p of pts){ g.beginPath(); g.arc(X(p.x), Y(p.y), 5, 0, 7); if (p.tob){ g.strokeStyle = C.stress; g.lineWidth = 2; g.stroke(); } else { g.fillStyle = C.stress; g.fill(); } }
+  const strength = Math.abs(r.r) < 0.1 ? "no" : Math.abs(r.r) < 0.3 ? "a weak" : Math.abs(r.r) < 0.5 ? "a moderate" : "a strong";
+  const dirTxt = r.r < 0 ? "more resilient people changed less" : "more resilient people changed more";
+  $("scNote").innerHTML = `r = ${r.r.toFixed(2)}, ${fmtP(r.p)}, n = ${r.n}. This is ${strength} relationship${Math.abs(r.r) >= 0.1 ? ` (${dirTxt})` : ""}, and it is ${r.p < 0.05 ? "" : "<b>not</b> "}statistically significant. Hollow dots: Tobii 50 Hz participants. Points above the dashed line went up under stress.`;
+}
+$("copyTable").onclick = () => {
+  const tsv = [...$("rtable").querySelectorAll("tr")].map(tr => [...tr.children].map(c => c.textContent.trim()).join("\t")).join("\n");
+  copyText(tsv, $("copyMsg"), $("rtable"));
+};
+function copyText(text, msgEl, fallbackEl){
+  const ok = () => { msgEl.textContent = "Copied"; setTimeout(() => msgEl.textContent = "", 2000); };
+  const fail = () => { const rg = document.createRange(); rg.selectNodeContents(fallbackEl); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); msgEl.textContent = "Selected. Press Ctrl+C (or ⌘C) to copy."; };
+  try { navigator.clipboard.writeText(text).then(ok, fail); } catch { fail(); }
+}
+function drawResultsChart(all){
+  const cv = $("rchart"); sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const k = $("metric").value, padL = 54, padR = 16, padT = 14, padB = 34, pw = W-padL-padR, ph = H-padT-padB;
+  const vals = all.flatMap(o=>o.m.map(x=>x[k])).filter(isFinite);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi-lo)*0.12 || 0.1; lo -= pad; hi += pad;
+  const X = j => padL + (j+0.5)*pw/PH.length, Y = v => padT + (1-(v-lo)/(hi-lo))*ph;
+  g.font = "11px 'IBM Plex Mono', monospace"; g.textAlign = "right"; g.textBaseline = "middle";
+  const step = niceStep((hi-lo)/5);
+  for (let v=Math.ceil(lo/step)*step; v<=hi; v+=step){ g.strokeStyle = C.grid; g.beginPath(); g.moveTo(padL,Y(v)); g.lineTo(W-padR,Y(v)); g.stroke(); g.fillStyle = C.muted; g.fillText(v.toFixed(DEC[k]), padL-6, Y(v)); }
+  PH.forEach((p,j) => { g.fillStyle = p.col; g.globalAlpha = 0.1; g.fillRect(padL + j*pw/PH.length, padT, pw/PH.length, ph); g.globalAlpha = 1;
+    g.font = "600 12px Figtree, sans-serif"; g.textAlign = "center"; g.textBaseline = "top"; g.fillText(W < 520 ? p.short.replace("Stress ","S").replace("Recov ","R") : p.short, X(j), H-padB+8); });
+  const pc = [C.muted];
+  all.forEach((o,ix) => {
+    g.strokeStyle = C.muted; g.globalAlpha = 0.28; g.lineWidth = 1.2; g.beginPath(); let pen=false;
+    o.m.forEach((x,j)=>{ const v=x[k]; if(!isFinite(v)){pen=false;return;} pen ? g.lineTo(X(j),Y(v)) : (g.moveTo(X(j),Y(v)), pen=true); }); g.stroke();
+    g.globalAlpha = 0.45; g.fillStyle = C.muted; o.m.forEach((x,j)=>{ if(isFinite(x[k])){ g.beginPath(); g.arc(X(j),Y(x[k]),2.2,0,7); g.fill(); } });
+    g.globalAlpha = 1;
+  });
+  g.strokeStyle = C.accent; g.lineWidth = 3; g.beginPath();
+  PH.forEach((_,j) => { const v = all.map(o=>o.m[j][k]).filter(isFinite); const m = v.reduce((s,x)=>s+x,0)/v.length; j ? g.lineTo(X(j),Y(m)) : g.moveTo(X(j),Y(m)); }); g.stroke();
+  g.fillStyle = C.accent; PH.forEach((_,j) => { const v = all.map(o=>o.m[j][k]).filter(isFinite); const m = v.reduce((s,x)=>s+x,0)/v.length; g.beginPath(); g.arc(X(j),Y(m),5,0,7); g.fill(); });
+  $("rlegend").innerHTML = `<span><i style="background:var(--muted)"></i>Each participant (${all.length})</span><span><i style="background:var(--accent);height:4px"></i>Group mean</span>`;
+}
+
+/* ---------- glossary ---------- */
+// [term, aka, plain explanation, everyday example]
+const GLOSS = {
+  "The eye": [
+    ["Pupil", "", "The black circle in the middle of the eye. It is a hole that lets light in. It is not a body part that moves on its own; the muscles of the iris make it bigger or smaller.", "Like the aperture of a camera lens, which opens wider in dim light."],
+    ["Iris", "", "The colored ring around the pupil (blue, brown, green). It is made of tiny muscles that widen or narrow the pupil. When people say \"the eyes dilate\", it is really the iris muscles opening the pupil.", "Like a curtain around a window: the curtain moves, the window opening changes size."],
+    ["Pupil diameter", "measured in mm", "How wide the pupil is from edge to edge, in millimeters. Most adult pupils sit between about 2 mm (bright light) and 8 mm (darkness). Changes caused by thinking are tiny, often less than half a millimeter.", "A millimeter is about the thickness of a credit card."],
+    ["Dilation", "", "The pupil getting bigger. It happens in darkness, and also with effort, stress, excitement or surprise, because the body's alarm system (the sympathetic nervous system) pulls the iris open.", "Your pupils widen slightly when you work hard on a math problem."],
+    ["Constriction", "", "The pupil getting smaller. It happens in bright light and when you are calm and relaxed.", "Stepping out into sunshine makes your pupils shrink within a second."],
+    ["Pupillary light reflex", "", "The automatic reaction that shrinks the pupil in bright light and widens it in the dark. It is much stronger than the effect of stress, so lighting differences can hide stress effects. This is why the Resting phase looks so different.", "Light can change pupil size by 2–4 mm; stress usually by only 0.1–0.5 mm."],
+    ["Hippus", "pupillary unrest", "Small, constant, wave-like wobbles in pupil size, even when the light never changes. The pupil slowly shrinks and widens over and over, a few times every 10 seconds. This project studies these waves.", "Like the gentle rise and fall of your chest while breathing: always there, rhythmic, slightly irregular."],
+    ["Blink and signal gap", "", "Moments when the eye tracker cannot see the pupil, usually because of a blink or a glance away. Those samples are empty. The page fills short gaps with a straight line between the readings on either side.", ""]
+  ],
+  "The study": [
+    ["PhysioNet", "", "A free public library of medical and body-signal recordings run by MIT researchers. Scientists share data there so others can check or reuse it.", ""],
+    ["Dataset", "", "The full collection of recordings used here: 35 adults, each recorded for about 34 minutes with brain, heart, skin and eye sensors. This page uses only the eye (pupil) part.", ""],
+    ["Participant", "p01 … p37", "One person who took part in the study. Each gets a code instead of a name for privacy. p14 and p23 were removed by the researchers because their data was incomplete.", ""],
+    ["MATB-II", "Multi-Attribute Task Battery", "A NASA computer program that imitates a pilot's workload. It shows several small jobs on one screen at once, so researchers can make people as busy or stressed as they want.", "Think of a flight-simulator video game made for experiments."],
+    ["Fuel task", "RESMAN, resource management", "The main job in this study: keep two fuel tanks at 2,500 units by switching pumps on and off. Pumps sometimes break, so the person must keep adjusting.", "Like keeping two bathtubs at the same water level while taps randomly stop working."],
+    ["Radio task", "COMMS", "The stressor. Recorded air-traffic-control voices call out flight codes. If the call is for you, you must quickly tune a radio to the frequency they say.", ""],
+    ["Phase", "condition", "One stretch of the session where the rules stay the same: Rest, Work, Stress 1, Recovery 1, Stress 2, Recovery 2.", "Like the quarters of a basketball game."],
+    ["Baseline", "", "A \"normal\" measurement taken before anything is changed, used as the starting point for comparison.", "Weighing yourself before starting a diet, so you can tell later whether it worked."],
+    ["Resting baseline", "", "The 1 minute at the start where people just sat still with eyes open. It shows the calm pupil, but the screen was not in use, so lighting was different.", ""],
+    ["Working baseline", "", "6 minutes of the fuel task without stressors. Same screen and light as the stress phases, so it is the fairest thing to compare stress against.", ""],
+    ["Recovery", "", "6 minutes back on the fuel task alone right after stress. It shows how fast the body calms down again.", ""],
+    ["Event marker", "", "A time stamp the researchers' computer saved at the start of each phase, so we know exactly where Work ends and Stress begins in the recording.", "Like chapter markers in a video."],
+    ["CD-RISC", "Connor-Davidson Resilience Scale", "A 10-question survey that scores how well someone bounces back from stress, from 0 to 40. Higher means more resilient. Shown next to each participant.", ""],
+    ["Eye tracker", "Tobii Pro Glasses 2", "Special glasses with tiny cameras and infrared lights that film the eyes and measure where you look and how wide your pupils are, many times per second.", ""],
+    ["EEG and fNIRS", "", "Two brain sensors also used in the study (not used on this page). EEG measures the brain's electrical activity; fNIRS uses light to measure blood oxygen in the forehead.", ""]
+  ],
+  "Where the pupil data comes from": [
+    ["250 Hz stream", "p01–p24", "For participants p01 to p24, the eye-tracking glasses sent their pupil readings live into the same computer that recorded the brain sensors. Everything was saved together in one file, 250 times per second (250 Hz), with one shared clock. Because the event markers sit on that same clock, we know to a fraction of a second when each phase started. This label appears under the participant picker as \"250 Hz stream\".", "Like recording a band with every instrument plugged into one mixing desk: all the tracks line up perfectly."],
+    ["Why 250 per second if the glasses are slower?", "", "The glasses measure the pupil about 50–100 times per second, but the recording computer saved 250 rows every second. In between new measurements it simply repeated the last value. That is why the raw numbers often show the same value several times in a row, like 5.20, 5.20, 5.20. This page averages every 25 rows into 1, giving 10 clean readings per second.", "Like a 24-frame-per-second movie shown on a 60 Hz TV: some frames are shown twice."],
+    ["Tobii 50 Hz file", "p25–p37", "For participants p25 to p37, the glasses saved pupil size on their own memory, 50 times per second, into a separate spreadsheet (pXXeye.xlsx). That file has its own clock that never synced with the brain-recording computer. This page lines the two up at the start of the recording, so phase boundaries for these 13 people could be off by up to about 30 seconds. They are marked with † in the Results table.", "Like two people pressing start on their stopwatches at slightly different moments."],
+    ["Does the source change the results?", "", "Both sources measure the same thing with the same glasses, and both are averaged to 10 readings per second before any math is done, so the wave equation is fitted the same way. The main difference is timing: the 250 Hz stream gives exact phase boundaries, while the Tobii files are approximate. If a result looks different for p25–p37, timing is the first thing to check.", ""]
+  ],
+  "Measuring signals": [
+    ["Signal", "", "Any measurement that changes over time, recorded as a long list of numbers. Here the signal is pupil diameter, second by second.", "A heart-rate graph on a hospital monitor is a signal."],
+    ["Sampling rate", "Hz, hertz", "How many measurements are taken each second. 1 Hz means once per second. The main recordings use 250 Hz, the Tobii files use 50 Hz, and this page averages everything down to 10 Hz.", "A video at 30 frames per second has a sampling rate of 30 Hz."],
+    ["Downsampling", "250 Hz → 10 Hz", "Averaging groups of measurements together to get fewer, smoother points. 25 readings become 1. Pupil waves are slow, so 10 per second is plenty.", ""],
+    ["Interpolation", "", "Filling a missing stretch by drawing a straight line between the last good reading and the next good one.", "Guessing you were halfway home at 5:30 if you left at 5:00 and arrived at 6:00."],
+    ["Moving average", "smoothing", "Replacing each point with the average of its neighbors. It irons out jitter. A short window (0.5 s) removes noise; a long window (20 s) shows the slow overall trend.", "A 7-day average of daily temperatures hides day-to-day swings."],
+    ["Detrending", "high-pass filtering", "Subtracting the slow trend so only the fast wiggles remain. The \"Hippus wave\" view shows the pupil after this step, so it wobbles around zero.", "Ignoring that the tide is coming in so you can study the individual waves."],
+    ["Window", "30-second window", "A short slice of the recording analyzed on its own. The page fits a new wave to every 30-second slice, sliding along the session.", ""],
+    ["Video pupil tracking", "My eye tab", "How the My eye tab measures a phone video. In each frame it looks outward from the pupil's center along 18 lines and finds where dark pupil turns into lighter iris. The middle value of those 18 edges is the pupil's radius. Frames where the edge is unclear (blinks, glare, motion) are skipped.", ""],
+    ["Iris as a ruler", "11.7 mm", "A camera measures in pixels, not millimeters. The colored iris is about 11.7 mm across in nearly every adult, so the pupil's size in mm is (pupil width ÷ iris width) × 11.7.", "If the pupil is 40% as wide as the iris, it is about 4.7 mm."],
+    ["Artifact", "", "A bit of the signal caused by something other than what you want to measure, like a blink, a head movement or a glare.", ""]
+  ],
+  "Algebra 2 tools": [
+    ["Sinusoidal function", "sine wave", "A smooth, repeating up-and-down curve made by the sine function. It is the standard algebra model for anything that cycles: tides, sound, seasons, and here the pupil's hippus.", "y = A·sin(B(t − C)) + D"],
+    ["Amplitude A", "wave height", "How far the wave rises above (or falls below) its middle line, in mm here. A larger A means the pupil swings more widely in each wobble.", "A = 0.10 mm means the pupil grows 0.1 mm above average, then shrinks 0.1 mm below."],
+    ["Constant B", "angular frequency, rad/s", "Controls how quickly the waves repeat. Bigger B squeezes more waves into the same time. It is measured in radians per second. The hypothesis predicts B goes up under stress.", "B = 1.26 rad/s gives a wave every 5 seconds."],
+    ["Frequency f", "Hz", "Number of complete waves per second. f = B ÷ 2π.", "f = 0.2 Hz means one wave every 5 seconds."],
+    ["Period T", "seconds", "Time for one complete wave, from peak to the next peak. T = 2π ÷ B = 1 ÷ f.", ""],
+    ["Phase shift C", "horizontal shift", "Slides the whole wave left or right in time so its peaks line up with the data. It does not change the wave's shape.", ""],
+    ["Midline D", "vertical shift", "The center line the wave swings around. Here it is the average pupil size in that 30-second window.", ""],
+    ["Radian", "", "Another unit for angles. A full circle is 2π radians (about 6.28), the same as 360°. Sine waves complete one cycle every 2π radians.", ""],
+    ["Quadratic function", "parabola", "A U-shaped (or upside-down U) curve from an equation with a squared term, like y = ax² + bx + c.", "A ball's path when you throw it is a parabola."],
+    ["Vertex form", "y = a(t − h)² + k", "A way of writing a quadratic that shows its turning point directly. (h, k) is the vertex.", ""],
+    ["Vertex (h, k)", "", "The lowest point of a U-shaped parabola (or highest of an upside-down one). Here h is the moment the pupil was smallest during a constriction and k is that smallest size.", ""],
+    ["Curvature a", "mm/s²", "The number in front of the squared term. It sets how narrow the U is. A larger a means the pupil stopped shrinking and started re-opening more sharply.", ""],
+    ["Acceleration 2a", "", "How fast the pupil's speed is changing at the bottom of the dip. For a parabola, this equals 2 × a. It is the same idea as acceleration in physics.", "A car braking hard and reversing has high acceleration at the turnaround."],
+    ["Curve fitting", "least squares", "Finding the equation whose curve passes as close as possible to the real data points. Least squares picks the curve that makes the total of the squared misses as small as possible.", "Drawing the best straight line through scattered dots on a graph, but done exactly by math."],
+    ["R²", "fit quality", "A score from 0 to 1 for how well the curve matches the data. 1 is a perfect match; 0 means the curve explains nothing. Pupil hippus is irregular, so values around 0.1–0.4 are normal.", "R² = 0.25 means the sine wave explains about a quarter of the wiggling."]
+  ],
+  "Statistics": [
+    ["Mean", "average", "Add all the numbers and divide by how many there are.", "The mean of 2, 4 and 9 is 5."],
+    ["Median", "", "The middle value after sorting the numbers. It ignores extreme values better than the mean, so this page uses it within each phase.", "The median of 2, 4 and 90 is 4."],
+    ["Independent variable", "", "What the researchers changed on purpose. Here it is the person's state: resting, working, stressed or recovering.", ""],
+    ["Dependent variable", "", "What is measured to see if it changed. Here it is the pupil wave: amplitude A, constant B, vertex curvature a and pupil size.", ""],
+    ["Control variable", "", "Something kept the same so it cannot explain the result. Lighting is meant to be one, but Rest used a different screen state than the task phases.", ""],
+    ["Confound", "confounding variable", "A hidden second cause that changes at the same time as the thing you are testing, so you cannot tell which one caused the result. Lighting is a confound for Rest vs. Stress.", "Ice-cream sales and sunburns both rise in summer; heat is the confound."],
+    ["Hypothesis", "", "A testable prediction. This project's: under stress, pupil waves get taller (A up) and faster (B up).", ""],
+    ["Paired t-test", "", "A test that compares two measurements from the same people, like each person's Stress value minus their own Work value. Pairing removes differences between people, such as naturally big or small pupils.", ""],
+    ["t value", "", "How big the average difference is compared with how much it varies between people. Far from 0 (like 3 or −3) suggests a real effect.", ""],
+    ["p-value", "", "If there were truly no effect, the chance of seeing a difference at least this big just by luck. Small p means luck is an unlikely explanation.", "p = 0.03 means only a 3% chance of a gap this big by luck alone."],
+    ["Statistical significance", "p < 0.05", "The usual cut-off: if p is below 0.05 (5%), scientists call the result significant. It does not mean the effect is large or important, only that it is unlikely to be chance.", ""],
+    ["Degrees of freedom", "df", "For a paired t-test, the number of people minus 1. It tells the test how much data it has to work with.", ""],
+    ["Sample size", "n", "How many participants were included. More participants make results more trustworthy.", ""],
+    ["Effect size (Cohen's d)", "d", "How big a difference is, measured in units of how much people vary. Unlike the p-value, it does not grow just because more people were tested. Rough guide: 0.2 small, 0.5 medium, 0.8 large.", "d = 0.5 means the average change is half as big as the typical person-to-person spread."],
+    ["95% confidence interval", "95% CI", "A range that very likely contains the true average change. If the whole range is above zero, the change is reliably positive; if it crosses zero, the direction is uncertain.", "\"+0.15 mm (0.08 to 0.22)\" means the true change is probably somewhere between 0.08 and 0.22 mm."],
+    ["Correlation r", "Pearson r", "A number from −1 to +1 for how closely two measurements move together. +1: perfectly together. −1: perfectly opposite. 0: no straight-line link. Used here to compare resilience scores with stress responses.", "Height and shoe size have a strong positive correlation."],
+    ["Event-locked average", "time-locked average", "Lining up many recordings at the same moment (time 0, like the start of stress) and averaging them. Random wobbles cancel out and the shared reaction stands out.", "Stacking photos of many sunsets so the common colors show through."],
+    ["Stress meter", "exploratory index", "A score made just for this page from 0 to 100. It compares the last 30 seconds with the person's own working baseline using pupil size, amplitude and B. A score near 30 means \"same as Working\". It is a teaching tool, not a medical test.", ""]
+  ]
+};
+let gCat = "All";
+function renderGlossary(){
+  const q = $("gsearch").value.trim().toLowerCase();
+  let html = "", hits = 0;
+  for (const [cat, terms] of Object.entries(GLOSS)){
+    if (gCat !== "All" && gCat !== cat) continue;
+    const list = terms.filter(t => !q || t.join(" ").toLowerCase().includes(q));
+    if (!list.length) continue; hits += list.length;
+    html += `<section class="card gcat"><h3>${cat}</h3><dl class="gterms">` + list.map(([t,aka,d,ex]) =>
+      `<div class="gterm"><dt>${t}${aka?`<small>${aka}</small>`:""}</dt><dd>${d}</dd>${ex?`<dd class="ex"><b>Example:</b> ${ex}</dd>`:""}</div>`).join("") + `</dl></section>`;
+  }
+  $("glist").innerHTML = html; $("gempty").hidden = hits > 0;
+}
+(function initGlossary(){
+  const cats = ["All", ...Object.keys(GLOSS)], box = $("gcats");
+  cats.forEach(c => { const b = document.createElement("button"); b.className = "chip"; b.textContent = c; b.setAttribute("aria-current", c === gCat);
+    b.onclick = () => { gCat = c; for (const x of box.children) x.setAttribute("aria-current", x === b); renderGlossary(); }; box.appendChild(b); });
+  $("gsearch").addEventListener("input", renderGlossary);
+  let d = ""; for (let x = 20; x <= 330; x += 2) d += (x === 20 ? "M" : "L") + x + " " + (85 - 55*Math.sin(2*Math.PI*(x-58)/150)).toFixed(1);
+  $("gsine").setAttribute("d", d);
+  renderGlossary();
+})();
+
+/* ---------- measure your own eye ---------- */
+// The iris is about 11.7 mm across in nearly every adult, so it serves as a ruler for pupil size in mm.
+const IRIS_MM = 11.7, ME_MAX = 90, SZ = 160;
+const ME = {calm: {key: "calm"}, stress: {key: "stress"}};
+let meInit = false, meLast = null;
+function initMe(){
+  if (meInit) { for (const s of Object.values(ME)) if (!s.busy) drawSlot(s); if (meLast) renderMe(meLast); return; }
+  meInit = true;
+  for (const s of Object.values(ME)) setupSlot(s);
+  updateWizard();
+  ensureMetrics(() => {});   // fit the study's participants in the background, ready for the comparison
+}
+// Step state: 1 done when the calm video is scanned, 2 when the stress task is finished, 3 when the stressed video is scanned.
+const wz = {stressDone: false};
+function setStep(id, state, text){
+  const el = $(id); el.classList.remove("locked", "active", "done"); el.classList.add(state);
+  $(id + "State").textContent = text;
+}
+function updateWizard(){
+  const s1 = !!ME.calm.res, s2 = wz.stressDone, s3 = !!ME.stress.res;
+  setStep("ws1", s1 ? "done" : "active", s1 ? "Done: calm video scanned" : "Start here");
+  setStep("ws2", !s1 ? "locked" : s2 ? "done" : "active", !s1 ? "Unlocks after step 1" : s2 ? "Done: stress task finished" : "Read this, then start the task");
+  setStep("ws3", !s2 ? "locked" : s3 ? "done" : "active", !s2 ? "Unlocks after step 2" : s3 ? "Done: stressed video scanned" : "Upload the video from the stress task");
+  setStep("ws4", !(s1 && s3) ? "locked" : "done", !(s1 && s3) ? "Appears after both videos are scanned" : "Ready");
+  $("tkStartStress").disabled = !$("tkReadOk").checked;
+  requestAnimationFrame(() => { for (const s of Object.values(ME)) if (s.cv && !s.busy && s.cv.offsetParent) drawSlot(s); });
+}
+function goStep(id){ const el = $(id); requestAnimationFrame(() => el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"})); }
+for (const id of ["ws1", "ws2", "ws3"]) $(id).querySelector(".whead").addEventListener("click", () => {
+  const el = $(id); if (!el.classList.contains("done")) return;
+  el.classList.toggle("open"); if (el.classList.contains("open")) for (const s of Object.values(ME)) if (!s.busy) drawSlot(s);
+});
+$("tkReadOk").onchange = updateWizard;
+$("tkSkip").onclick = () => { wz.stressDone = true; $("ws3Msg").textContent = "Upload your stressed video, then mark the pupil and scan it the same way as step 1."; updateWizard(); goStep("ws3"); requestAnimationFrame(() => drawSlot(ME.stress)); };
+$("meShowEx").onclick = () => {
+  $("meShowEx").disabled = true; $("meShowEx").textContent = "Loading the study's data…";
+  ensureMetrics(() => { $("ws4").classList.add("preview"); $("meResult").hidden = false; requestAnimationFrame(renderExample); });
+};
+function setStat(s, msg, tone){ const el = $("meStat-"+s.key); el.textContent = msg; el.style.color = tone === "bad" ? "var(--bad)" : tone === "ok" ? "var(--ok)" : ""; }
+function seekTo(v, t){ return new Promise(res => { let done = false; const fin = () => { if (done) return; done = true; v.removeEventListener("seeked", fin); res(); }; v.addEventListener("seeked", fin); v.currentTime = t; setTimeout(fin, 2000); }); }
+function setupSlot(s){
+  const k = s.key; s.cv = $("meCv-"+k); s.stage = $("meStage-"+k);
+  const v = s.video = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto";
+  $("meFile-"+k).onchange = e => { if (e.target.files[0]) loadVideo(s, e.target.files[0]); e.target.value = ""; };
+  s.stage.addEventListener("dragover", e => { e.preventDefault(); s.stage.classList.add("drag"); });
+  s.stage.addEventListener("dragleave", () => s.stage.classList.remove("drag"));
+  s.stage.addEventListener("drop", e => { e.preventDefault(); s.stage.classList.remove("drag"); const f = e.dataTransfer.files[0]; if (f) loadVideo(s, f); });
+  s.cv.addEventListener("pointerdown", e => {
+    if (!s.ready || s.busy || !s.tf) return;
+    const r = s.cv.getBoundingClientRect(), x = (e.clientX - r.left - s.tf.ox)/s.tf.k, y = (e.clientY - r.top - s.tf.oy)/s.tf.k;
+    if (x < 0 || y < 0 || x > v.videoWidth || y > v.videoHeight) return;
+    s.cx = x; s.cy = y; s.placed = true; s.pupilR = null; drawSlot(s);
+    $("meGo-"+k).disabled = false; setStat(s, "Now size the dashed circle to the outer edge of the colored iris, then scan.");
+  });
+  $("meIris-"+k).oninput = e => { if (!s.ready) return; s.R = +e.target.value/100 * Math.min(v.videoWidth, v.videoHeight)/2; $("meIrisOut-"+k).textContent = Math.round(s.R*2) + " px"; drawSlot(s); };
+  $("meGo-"+k).onclick = () => scanSlot(s);
+  drawSlot(s);
+}
+function loadVideo(s, file){
+  const v = s.video, k = s.key;
+  if (s.url) URL.revokeObjectURL(s.url);
+  s.url = URL.createObjectURL(file); s.ready = s.placed = false; s.res = null; s.pupilR = null;
+  $("meGo-"+k).disabled = true; $("meIris-"+k).disabled = true; $("meProg-"+k).style.width = "0%";
+  setStat(s, "Opening video…");
+  v.onerror = () => { setStat(s, "This browser can't open this video format. On iPhone set Settings → Camera → Formats → Most Compatible, or try another browser.", "bad"); drawSlot(s); };
+  v.onloadeddata = async () => {
+    v.onloadeddata = null;
+    if (!isFinite(v.duration)) await seekTo(v, 1e6);   // some recorders omit the length; seeking past the end reveals it
+    await seekTo(v, Math.min(1, (isFinite(v.duration) ? v.duration : 2)/2));
+    s.ready = true; s.cx = v.videoWidth/2; s.cy = v.videoHeight/2;
+    const sl = $("meIris-"+k); sl.disabled = false; sl.dispatchEvent(new Event("input"));
+    const short = isFinite(v.duration) && v.duration < 20;
+    setStat(s, short ? "This video is shorter than 20 s; 30–60 s gives a much better wave fit. Click the center of the pupil to continue." : "Click the center of the pupil in the picture.", short ? "bad" : "");
+  };
+  v.src = s.url; v.load();
+}
+function drawSlot(s){
+  const cv = s.cv; sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle = C.stage; g.fillRect(0,0,W,H);
+  const v = s.video;
+  if (!s.ready){
+    g.fillStyle = C.muted; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "600 14px Figtree, sans-serif";
+    g.fillText("Drop a video here", W/2, H/2 - 10); g.font = "13px Figtree, sans-serif"; g.fillText("or use Choose video", W/2, H/2 + 12);
+    s.tf = null; return;
+  }
+  const k = Math.min(W/v.videoWidth, H/v.videoHeight), ox = (W - v.videoWidth*k)/2, oy = (H - v.videoHeight*k)/2;
+  s.tf = {k, ox, oy};
+  g.drawImage(v, ox, oy, v.videoWidth*k, v.videoHeight*k);
+  const cx = ox + s.cx*k, cy = oy + s.cy*k;
+  g.lineWidth = 2; g.strokeStyle = C.accent; g.setLineDash([6,5]); g.beginPath(); g.arc(cx, cy, s.R*k, 0, 7); g.stroke(); g.setLineDash([]);
+  if (s.placed){ g.strokeStyle = C.ink; g.beginPath(); g.moveTo(cx-8,cy); g.lineTo(cx+8,cy); g.moveTo(cx,cy-8); g.lineTo(cx,cy+8); g.stroke(); }
+  if (s.pupilR){ g.strokeStyle = C.wave; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, s.pupilR*k, 0, 7); g.stroke(); }
+}
+// Finds the pupil edge along rays from the center: the strongest dark-to-bright step before the iris edge.
+function detectPupil(px, Rr){
+  const G = new Float32Array(SZ*SZ);
+  for (let i=0, j=0; i<G.length; i++, j+=4) G[i] = 0.55*px[j] + 0.35*px[j+1] + 0.10*px[j+2];
+  const c = SZ/2, rays = [], lo = Math.round(0.12*Rr), hi = Math.round(0.82*Rr);
+  for (const deg of [-40,-30,-20,-10,0,10,20,30,40,140,150,160,170,180,190,200,210,220]){
+    const a = deg*Math.PI/180, ca = Math.cos(a), sa = Math.sin(a), prof = [];
+    for (let r=0; r<=hi+3; r++){ const x = Math.round(c + ca*r), y = Math.round(c + sa*r); prof.push(x>=0&&y>=0&&x<SZ&&y<SZ ? G[y*SZ+x] : 255); }
+    let best = 0, br = -1;
+    for (let r=lo; r<=hi; r++){ const gr = (prof[r+1]+prof[r+2]+prof[r+3]) - (prof[r-1]+prof[r-2]+prof[r-3]); if (gr > best){ best = gr; br = r; } }
+    if (br > 0) rays.push({r: br, g: best/3, right: deg > -90 && deg < 90});
+  }
+  if (rays.length < 8) return {ok: false};
+  const rs = rays.map(q => q.r).sort((a,b)=>a-b), rMed = rs[rs.length>>1], mad = median(rs.map(r => Math.abs(r - rMed)));
+  const good = rays.filter(q => Math.abs(q.r - rMed) <= Math.max(2, 2.5*mad)), gMed = median(good.map(q => q.g));
+  let inner = 0, ni = 0, ring = 0, nr = 0, sx = 0, sy = 0, sn = 0;
+  for (let y=0; y<SZ; y++) for (let x=0; x<SZ; x++){
+    const d = Math.hypot(x-c, y-c), val = G[y*SZ+x];
+    if (d < rMed*0.6){ inner += val; ni++; } else if (d > rMed*1.25 && d < Math.min(rMed*1.7, Rr*0.95)){ ring += val; nr++; }
+  }
+  inner /= ni||1; ring /= nr||1;
+  const thr = (inner + ring)/2;
+  for (let y=0; y<SZ; y++) for (let x=0; x<SZ; x++){ if (Math.hypot(x-c, y-c) < rMed*1.15 && G[y*SZ+x] < thr){ sx += x; sy += y; sn++; } }
+  const r = good.reduce((a,q) => a + q.r, 0)/good.length;
+  const ok = good.length >= 8 && gMed > 6 && ring - inner > 12 && mad < 0.12*Rr;
+  return {ok, r, dx: sn ? sx/sn - c : 0, dy: sn ? sy/sn - c : 0, contrast: ring - inner};
+}
+async function scanSlot(s){
+  const v = s.video, k = s.key;
+  s.busy = true; $("meGo-"+k).disabled = true; $("meIris-"+k).disabled = true;
+  const lim = Math.min(isFinite(v.duration) ? v.duration : ME_MAX, ME_MAX), N = Math.max(1, Math.floor(lim*FS));
+  const series = new Array(N).fill(null), roi = document.createElement("canvas"); roi.width = roi.height = SZ;
+  const rg = roi.getContext("2d", {willReadFrequently: true});
+  const cx0 = s.cx, cy0 = s.cy, R = s.R, half = R*1.25, kk = SZ/(2*half), Rr = R*kk;
+  let cx = cx0, cy = cy0, frames = 0;
+  const process = idxs => {
+    rg.fillStyle = "#808080"; rg.fillRect(0,0,SZ,SZ);
+    const sx = Math.max(0, cx-half), sy = Math.max(0, cy-half), ex = Math.min(v.videoWidth, cx+half), ey = Math.min(v.videoHeight, cy+half);
+    if (ex > sx && ey > sy) rg.drawImage(v, sx, sy, ex-sx, ey-sy, (sx-(cx-half))*kk, (sy-(cy-half))*kk, (ex-sx)*kk, (ey-sy)*kk);
+    const d = detectPupil(rg.getImageData(0,0,SZ,SZ).data, Rr);
+    if (d.ok){
+      const mm = d.r/Rr*IRIS_MM; for (const i of idxs) series[i] = mm;
+      cx = Math.min(cx0+0.4*R, Math.max(cx0-0.4*R, cx + d.dx/kk*0.4)); cy = Math.min(cy0+0.4*R, Math.max(cy0-0.4*R, cy + d.dy/kk*0.4));
+      s.pupilR = d.r/kk;
+    } else s.pupilR = null;
+    s.cx = cx; s.cy = cy;
+    if (++frames % 3 === 0) drawSlot(s);
+  };
+  const prog = f => { $("meProg-"+k).style.width = (f*100) + "%"; setStat(s, `Scanning… ${Math.round(f*100)}%`); };
+  await seekTo(v, 0);
+  let mode = "seek";
+  if ("requestVideoFrameCallback" in HTMLVideoElement.prototype){
+    mode = await new Promise(resolve => {
+      let next = 0, stalled = null;
+      const finish = m => { clearTimeout(stalled); v.pause(); v.onended = null; resolve(m); };
+      const cb = (now, meta) => {
+        clearTimeout(stalled); stalled = setTimeout(() => finish(next < N*0.9 ? "seek-from:" + next : "done"), 3000);
+        const idx = []; while (next < N && next/FS <= meta.mediaTime + 0.02){ idx.push(next); next++; }
+        if (idx.length) process(idx); prog(next/N);
+        if (next >= N) return finish("done");
+        v.requestVideoFrameCallback(cb);
+      };
+      v.onended = () => finish(next < N*0.9 ? "seek-from:" + next : "done");
+      v.playbackRate = 2; v.requestVideoFrameCallback(cb);
+      v.play().catch(() => finish("seek-from:0"));
+    });
+  }
+  if (mode !== "done"){
+    const from = mode.startsWith("seek-from:") ? +mode.split(":")[1] : 0;
+    for (let i=from; i<N; i++){ await seekTo(v, i/FS + 0.001); process([i]); if (i % 5 === 0) prog(i/N); }
+  }
+  s.busy = false; $("meIris-"+k).disabled = false; $("meGo-"+k).disabled = false; prog(1); drawSlot(s);
+  const valid = series.filter(x => x != null).length / N;
+  if (valid < 0.3){ s.res = null; setStat(s, `The pupil was found in only ${Math.round(valid*100)}% of frames. Re-center the cross on the pupil, match the circle to the iris, and try a brighter, steadier video.`, "bad"); return; }
+  const S = prep({id: "me-"+k, markers: [], pupil: series});
+  s.res = {...measure(S, 0, S.n), S, range: [0, S.n], valid, secs: N/FS};
+  setStat(s, `Done: ${s.res.secs.toFixed(0)} s scanned, pupil found in ${Math.round(valid*100)}% of frames.`, valid < 0.6 ? "bad" : "ok");
+  updateWizard();
+  if (ME.calm.res && ME.stress.res){
+    $("ws4").classList.remove("preview"); $("meResult").hidden = false; goStep("ws4");
+    ensureMetrics(() => requestAnimationFrame(() => renderMe({calm: ME.calm.res, stress: ME.stress.res, example: null})));
+  } else if (k === "calm" && !wz.stressDone) goStep("ws2");
+}
+// Same measurements as the study: median of 30 s sine fits, mean size, and constriction vertices.
+function measure(S, i0, i1){
+  const L = WIN*FS, As = [], Bs = [], R2 = [];
+  for (let s=i0; s+L<=i1; s+=50){ const f = fitSine(S, s, s+L); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
+  const whole = fitSine(S, i0, i1);
+  if (!As.length && whole){ As.push(whole.A); Bs.push(whole.B); R2.push(whole.r2); }
+  let d = 0, c = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { d += S.x[i]; c++; }
+  const tr = troughs(S, i0, i1);
+  return {A: median(As), B: median(Bs), r2: median(R2), diam: c ? d/c : NaN, qa: median(tr.map(t=>t.a)), rate: tr.length/((i1-i0)/FS/60), fit: whole};
+}
+function renderExample(){
+  const S = subjects.find(x => x.id === "p07") || subjects[0];
+  const w = S.ph[REF], st1 = S.ph[2], mid = p => Math.round((p.s + Math.max(0, (p.e-p.s-60)/2))*FS);
+  const ra = [mid(w), mid(w) + 60*FS], rb = [mid(st1), mid(st1) + 60*FS];
+  renderMe({calm: {...measure(S, ...ra), S, range: ra, valid: 1}, stress: {...measure(S, ...rb), S, range: rb, valid: 1}, example: S.id.toUpperCase()});
+}
+function renderMe(pair){
+  meLast = pair;
+  const {calm: c, stress: s, example} = pair;
+  $("meEyebrow").textContent = example ? "Example result" : "Your result";
+  $("meTitle").textContent = example ? `What a result looks like: ${example}, Working vs. Stress 1` : "Calm vs. stressed: your eye";
+  $("meNote").textContent = example ? `This example uses one minute of ${example}'s Working baseline and one minute of their Stress 1 phase from the dataset. Scan your two videos above to replace it with your own result.` : "";
+  $("meWaveCalmT").textContent = example ? "Calm (Working baseline)" : "Calm video"; $("meWaveStressT").textContent = example ? "Stressed (Stress 1)" : "Stressed video";
+  const pop = subjects.map(S => { const m = metricsOf(S), w = m[REF]; return {diam: stressVal(m,"diam") - w.diam, A: stressVal(m,"A") - w.A, B: stressVal(m,"B") - w.B}; });
+  const you = {diam: s.diam - c.diam, A: s.A - c.A, B: s.B - c.B};
+  const pct = key => { const v = pop.map(p => p[key]).filter(isFinite); return v.length && isFinite(you[key]) ? Math.round(100 * v.filter(x => x < you[key]).length / v.length) : NaN; };
+  const who = example ? "the pupil" : "your pupil", Who = example ? "The pupil" : "Your pupil";
+  const more = key => { const p = pct(key); return p >= 100 ? "more than every study participant" : p <= 0 ? "less than every study participant" : `more than ${p}% of study participants`; };
+  let verdict;
+  if (!isFinite(you.diam)) verdict = "Not enough clean frames to compare the two videos.";
+  else if (you.diam > 0.02 && pct("diam") >= 50) verdict = `Clear stress response: ${who} widened by ${you.diam.toFixed(2)} mm, ${more("diam")}.`;
+  else if (you.diam > 0.02) verdict = `Mild stress response: ${who} widened by ${you.diam.toFixed(2)} mm, ${more("diam")}.`;
+  else verdict = `No stress widening detected: ${who} did not get larger in the stressed recording. A change in light or a task that felt easy are the usual reasons.`;
+  $("meVerdict").textContent = verdict;
+  const hyp = you.A > 0 && you.B > 0;
+  $("meWaveTxt").textContent = isFinite(you.A) && isFinite(you.B) ? `${Who}'s hippus waves got ${you.A >= 0 ? "taller" : "smaller"} (A ${sgn(you.A,3)} mm) and ${you.B >= 0 ? "faster" : "slower"} (B ${sgn(you.B,2)} rad/s). ${hyp ? "That is the pattern the project's hypothesis predicts." : "The hypothesis predicts both would rise, so this is not the predicted pattern."}` : "The wave fit needs at least 20 seconds of clean pupil signal in each recording.";
+  const f = (lab, a, b, u, dec, key) => `<div class="kfact"><span class="lab">${lab}</span><span class="num">${isFinite(a) ? a.toFixed(dec) : "–"} → ${isFinite(b) ? b.toFixed(dec) : "–"} ${u}</span><span class="sub">${isFinite(a) && isFinite(b) ? `change ${sgn(b-a,dec)}${key && isFinite(pct(key)) ? ` · ${pct(key) >= 100 ? "above every participant" : pct(key) <= 0 ? "below every participant" : `above ${pct(key)}% of participants`}` : ""}` : "not enough data"}</span></div>`;
+  $("meFacts").innerHTML = f("Pupil size", c.diam, s.diam, "mm", 2, "diam") + f("Amplitude A", c.A, s.A, "mm", 3, "A") + f("Wave constant B", c.B, s.B, "rad/s", 2, "B") + f("Constrictions / min", c.rate, s.rate, "", 1, null) +
+    (!example && (ratings.calm || ratings.stress) ? `<div class="kfact"><span class="lab">How stressed you felt</span><span class="num">${ratings.calm ?? "–"} → ${ratings.stress ?? "–"} / 10</span><span class="sub">your own rating after each task</span></div>` : "");
+  drawMeWave($("meWave-calm"), c, C.work); drawMeWave($("meWave-stress"), s, C.stress);
+  const eq = r => r.fit ? `y = ${r.fit.A.toFixed(3)}·sin(${r.fit.B.toFixed(2)}(t − ${r.fit.C.toFixed(2)})) + ${r.fit.D.toFixed(2)} · R² ${r.fit.r2.toFixed(2)}` : "No reliable wave fit";
+  $("meEq-calm").textContent = eq(c); $("meEq-stress").textContent = eq(s);
+  drawStrips(pop, you, example ? example : "You");
+  $("meQuality").textContent = example ? "" : `Tracking quality: pupil found in ${Math.round(c.valid*100)}% (calm) and ${Math.round(s.valid*100)}% (stressed) of frames.${Math.min(c.valid, s.valid) < 0.6 ? " Below 60% the numbers are unreliable; try a steadier, brighter recording." : ""} Phone video sees the pupil less clearly than the study's infrared eye tracker, and the study compares stress with a Working baseline, so treat this as a classroom experiment, not a diagnosis.`;
+}
+function drawMeWave(cv, r, col){
+  sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const {S, range: [i0, i1], fit} = r, padL = 44, padR = 8, padT = 8, padB = 22, pw = W-padL-padR, ph = H-padT-padB;
+  let m = 0.05; for (let i=i0;i<i1;i++) if (S.valid[i]) m = Math.max(m, Math.abs(S.hp[i]));
+  m *= 1.15; const X = i => padL + (i-i0)/(i1-i0)*pw, Y = v => padT + (1 - (v+m)/(2*m))*ph;
+  g.font = "11px 'IBM Plex Mono', monospace"; g.fillStyle = C.muted; g.textAlign = "right"; g.textBaseline = "middle";
+  for (const v of [-m*0.8, 0, m*0.8]){ g.strokeStyle = C.grid; g.beginPath(); g.moveTo(padL,Y(v)); g.lineTo(W-padR,Y(v)); g.stroke(); g.fillText((v>0?"+":"")+v.toFixed(2), padL-6, Y(v)); }
+  g.textAlign = "center"; g.textBaseline = "top"; const secs = (i1-i0)/FS;
+  for (let t=0; t<=secs; t+=Math.max(10, Math.round(secs/6/10)*10)) g.fillText(t+" s", X(i0+t*FS), H-padB+5);
+  g.strokeStyle = col; g.lineWidth = 1.8; g.beginPath(); let pen = false;
+  for (let i=i0;i<i1;i++){ if (!S.valid[i]) { pen = false; continue; } pen ? g.lineTo(X(i), Y(S.hp[i])) : (g.moveTo(X(i), Y(S.hp[i])), pen = true); }
+  g.stroke();
+  if (fit){ g.strokeStyle = C.wave; g.lineWidth = 2; g.beginPath(); for (let i=i0;i<i1;i+=2){ const y = Y(fit.m + fit.A*Math.sin(fit.B*(i/FS - fit.C))); i===i0 ? g.moveTo(X(i),y) : g.lineTo(X(i),y); } g.stroke(); }
+}
+function drawStrips(pop, you, youLabel){
+  const cv = $("meStrips"); sizeCanvas(cv);
+  const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const rows = [["diam","Pupil size change","mm",2], ["A","Amplitude A change","mm",3], ["B","Wave constant B change","rad/s",2]];
+  const labW = W < 520 ? 0 : 170, rh = (H-10)/rows.length;
+  rows.forEach(([key, lab, u, dec], ri) => {
+    const vals = pop.map(p => p[key]).filter(isFinite), yv = you[key];
+    const top = 5 + ri*rh, mid = top + rh*0.55, x0 = labW + 14, x1 = W - 14;
+    let lo = Math.min(0, ...vals, isFinite(yv) ? yv : 0), hi = Math.max(0, ...vals, isFinite(yv) ? yv : 0); const pad = (hi-lo)*0.08 || 0.01; lo -= pad; hi += pad;
+    const X = v => x0 + (v-lo)/(hi-lo)*(x1-x0);
+    g.fillStyle = C.ink; g.font = "600 12.5px Figtree, sans-serif"; g.textAlign = "left"; g.textBaseline = labW ? "middle" : "top";
+    g.fillText(`${lab} (${u})`, labW ? 0 : x0, labW ? mid : top);
+    g.strokeStyle = C.line; g.beginPath(); g.moveTo(x0, mid); g.lineTo(x1, mid); g.stroke();
+    g.strokeStyle = C.muted; g.setLineDash([3,3]); g.beginPath(); g.moveTo(X(0), mid-16); g.lineTo(X(0), mid+16); g.stroke(); g.setLineDash([]);
+    g.font = "10.5px 'IBM Plex Mono', monospace"; g.fillStyle = C.muted; g.textAlign = "center"; g.textBaseline = "top";
+    g.fillText(lo.toFixed(dec), x0+12, mid+18); g.fillText("0", X(0), mid+18); g.fillText(hi.toFixed(dec), x1-12, mid+18);
+    vals.forEach((v, i) => { g.fillStyle = C.muted; g.globalAlpha = 0.55; g.beginPath(); g.arc(X(v), mid + ((i*37)%11 - 5), 3.5, 0, 7); g.fill(); });
+    g.globalAlpha = 1;
+    if (isFinite(yv)){
+      const x = X(yv); g.fillStyle = C.accent; g.beginPath(); g.moveTo(x, mid-6); g.lineTo(x-7, mid-18); g.lineTo(x+7, mid-18); g.closePath(); g.fill();
+      g.strokeStyle = C.accent; g.lineWidth = 2; g.beginPath(); g.moveTo(x, mid-6); g.lineTo(x, mid+8); g.stroke();
+      g.font = "600 11.5px Figtree, sans-serif"; g.textBaseline = "bottom"; g.textAlign = x > x1-50 ? "right" : x < x0+50 ? "left" : "center"; g.fillText(`${youLabel} ${sgn(yv,dec)}`, x, mid-19);
+    }
+  });
+}
+
+/* ---------- one-device camera mode ---------- */
+// Only works where the host allows the camera (e.g. GitHub Pages). On claude.ai the request is refused and the
+// page keeps the phone + upload method. Recordings never leave the browser: they go straight into the scan step.
+const live = {stream: null, rec: null, chunks: []};
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) $("liveBox").hidden = false;
+$("liveOn").onclick = async () => {
+  if (live.stream) return stopLive();
+  $("liveMsg").textContent = "Asking for camera permission…";
+  try { live.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "user", width: {ideal: 1920}, height: {ideal: 1080}}, audio: false}); }
+  catch (e) {
+    live.stream = null;
+    $("liveMsg").textContent = e && e.name === "NotAllowedError"
+      ? "The camera isn't available here. This page may block cameras (as claude.ai does), or permission was denied. Use the phone method, or open the GitHub Pages version of Hippus Lab."
+      : "No camera was found on this device. Use the phone method instead.";
+    return;
+  }
+  for (const id of ["livePrev", "tkCam"]){ const v = $(id); v.srcObject = live.stream; v.play().catch(() => {}); }
+  $("livePrev").hidden = false; $("liveOn").textContent = "Turn camera off";
+  const st = live.stream.getVideoTracks()[0].getSettings();
+  $("liveMsg").textContent = `Camera on (${st.width || "?"}×${st.height || "?"}). Move closer until your eye is clearly visible. Recording starts automatically with each task.`;
+};
+function stopLive(){
+  if (live.rec) { try { live.rec.stop(); } catch {} live.rec = null; }
+  if (live.stream) live.stream.getTracks().forEach(t => t.stop());
+  live.stream = null; $("livePrev").hidden = true; $("tkCam").hidden = true;
+  $("liveOn").textContent = "Use this device's camera"; $("liveMsg").textContent = "Camera off.";
+}
+function liveStart(){
+  if (!live.stream) return;
+  const mt = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+  live.chunks = [];
+  try { live.rec = new MediaRecorder(live.stream, mt ? {mimeType: mt, videoBitsPerSecond: 8e6} : {}); } catch { live.rec = null; return; }
+  live.rec.ondataavailable = e => { if (e.data && e.data.size) live.chunks.push(e.data); };
+  live.rec.start(1000);
+}
+function liveStop(kind, keep){
+  const rec = live.rec; if (!rec) return; live.rec = null;
+  rec.onstop = () => {
+    if (!keep || !live.chunks.length) return;
+    const type = rec.mimeType || "video/webm", f = new File(live.chunks, `${kind}-camera.${type.includes("mp4") ? "mp4" : "webm"}`, {type});
+    const s = ME[kind]; loadVideo(s, f);
+    setTimeout(() => setStat(s, "Recorded with this device's camera. Click the center of your pupil in the picture."), 1500);
+  };
+  try { rec.stop(); } catch {}
+}
+
+/* ---------- mini MATB stress task ---------- */
+// Baseline = fuel task alone (the study's Working baseline). Stress = fuel task + pump failures + radio calls,
+// mirroring the study's Stress conditions. Same layout in both, so screen brightness stays matched.
+const TK = {CAP: 4000, LO: 2000, HI: 3000, PUMP: 32, CALL: "HIPPUS-7", OTHERS: ["DELTA-4", "NOVA-12", "HIPPO-17", "HIPPUS-1", "ORBIT-7"]};
+const ratings = {};
+let tk = null, actx = null;
+function tone(freq, dur, type = "sine", vol = 0.08){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+  } catch {}
+}
+function say(text){ try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.15; speechSynthesis.speak(u); } catch {} }
+const freqStr = f => f.toFixed(3);
+const randFreq = () => 118 + Math.round(Math.random()*18*40)/40;
+// kind "calm": same screen on autopilot with a breathing cue (step 1). kind "stress": the full task (step 2).
+function startTask(kind){
+  const dur = kind === "calm" ? 60 : +$("tkDur").value;
+  tk = {kind, dur, t: 0, A: 2500, B: 2500, pumps: [true, false, true, false], failUntil: [0,0,0,0], dev: 0, devN: 0, inBand: 0,
+        // one pump (32/s) against the drain: baseline creeps up 8/s, stress sinks 12/s, so stress needs constant switching
+        drain: kind === "stress" ? 44 : 24, freq: 121.5, radio: null, nextCall: 7, nextFail: 10, firstCall: true, hits: 0, misses: 0, falseAlarms: 0, calls: 0, lastTick: -1, running: false};
+  $("task").hidden = false; $("tkEnd").hidden = true;
+  const st = $("tkPhase"); st.style.color = kind === "stress" ? "var(--stress)" : "var(--work)";
+  st.innerHTML = `<i></i><span style="color:var(--ink)">${kind === "stress" ? "Stress task" : "Calm screen: just watch"}</span>`;
+  $("tkMsg").textContent = kind === "stress" ? "Listening…" : "Autopilot is on. Nothing to do: watch the screen and breathe slowly.";
+  $("tkFreq").textContent = freqStr(tk.freq); $("tkRadioStat").textContent = ""; $("tkScore").textContent = "";
+  renderTask();
+  try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch {}
+  tone(1, 0.01, "sine", 0.0001);   // unlock audio inside the click
+  let n = 5; $("tkCount").hidden = false; $("tkCountNum").textContent = n;
+  $("tkCountMsg").textContent = live.stream ? "Get close to the camera: recording starts automatically" : "Start recording your eye on your phone now";
+  $("tkCam").hidden = !live.stream;
+  const iv = setInterval(() => {
+    n--; if (n > 0){ $("tkCountNum").textContent = n; tone(660, 0.12); return; }
+    clearInterval(iv); $("tkCount").hidden = true; tone(990, 0.25); liveStart();
+    tk.running = true; tk.prev = performance.now(); requestAnimationFrame(taskLoop);
+  }, 1000);
+  tk.countIv = iv;
+}
+function taskLoop(now){
+  if (!tk || !tk.running) return;
+  const dt = Math.min(0.1, (now - tk.prev)/1000); tk.prev = now; tk.t += dt;
+  const t = tk.t, stress = tk.kind === "stress";
+  // pump failures: two random pumps fail for 7 s, every 10 s (stress only)
+  if (stress && t >= tk.nextFail){
+    tk.nextFail += 10; const idx = [0,1,2,3].sort(() => Math.random() - 0.5).slice(0, 2);
+    for (const i of idx) tk.failUntil[i] = t + 7;
+    tone(220, 0.35, "sawtooth", 0.06);
+  }
+  if (tk.kind === "calm"){
+    tk.pumps = [tk.A < 2480, false, tk.B < 2480, false];   // autopilot keeps both tanks near 2,500
+    const phase = Math.floor(t/5) % 2, cue = phase ? "Breathe out… slowly" : "Breathe in… slowly";
+    if (tk.cue !== cue){ tk.cue = cue; $("tkMsg").textContent = cue; }
+  }
+  const ok = i => tk.pumps[i] && tk.failUntil[i] <= t;
+  tk.A = Math.max(0, Math.min(TK.CAP, tk.A + ((ok(0) + ok(1))*TK.PUMP - tk.drain - (stress ? 12*Math.sin(t*0.7) : 0))*dt));
+  tk.B = Math.max(0, Math.min(TK.CAP, tk.B + ((ok(2) + ok(3))*TK.PUMP - tk.drain - (stress ? 12*Math.cos(t*0.5) : 0))*dt));
+  tk.dev += (Math.abs(tk.A - 2500) + Math.abs(tk.B - 2500))/2*dt; tk.devN += dt;
+  if (tk.A >= TK.LO && tk.A <= TK.HI && tk.B >= TK.LO && tk.B <= TK.HI) tk.inBand += dt;
+  // radio calls (stress only): about every 11–15 s, 70% for you, the first one always yours
+  if (stress){
+    if (!tk.radio && t >= tk.nextCall && t < tk.dur - 6){
+      const mine = tk.firstCall || Math.random() < 0.7, cs = mine ? TK.CALL : TK.OTHERS[Math.floor(Math.random()*TK.OTHERS.length)];
+      let target; do { target = Math.min(136.975, Math.max(118, tk.freq + (Math.random() < 0.5 ? -1 : 1)*(1 + Math.random()*3))); target = Math.round(target*40)/40; } while (Math.abs(target - tk.freq) < 0.5);
+      tk.radio = {mine, cs, target, start: t, deadline: t + 12}; tk.calls += mine; tk.firstCall = false;
+      const text = `${cs}, contact center on ${freqStr(target)}`;
+      $("tkMsg").textContent = text; say(text.replace(/-/g, " ")); tone(1200, 0.08);
+      tk.hideAt = t + 4;
+    }
+    if (tk.radio && tk.hideAt && t >= tk.hideAt){ $("tkMsg").textContent = "…"; tk.hideAt = 0; }
+    if (tk.radio){
+      const left = tk.radio.deadline - t;
+      if (tk.radio.mine && left < 5 && Math.ceil(left) !== tk.lastTick){ tk.lastTick = Math.ceil(left); tone(880, 0.05, "square", 0.05); }
+      if (left <= 0){ if (tk.radio.mine){ tk.misses++; radioStat("Missed: no response in time", "bad"); tone(150, 0.5, "sawtooth", 0.08); } endCall(); }
+    }
+  }
+  if (t >= tk.dur) return finishTask();
+  renderTask();
+  requestAnimationFrame(taskLoop);
+}
+function endCall(){ tk.radio = null; tk.nextCall = tk.t + 11 + Math.random()*4; tk.lastTick = -1; }
+function radioStat(msg, tone_){ const el = $("tkRadioStat"); el.textContent = msg; el.style.color = tone_ === "bad" ? "var(--bad)" : "var(--ok)"; clearTimeout(tk.rsT); tk.rsT = setTimeout(() => { el.textContent = ""; }, 2500); }
+function renderTask(){
+  if (!tk) return;
+  for (const [id, v] of [["tankA", tk.A], ["tankB", tk.B]]){
+    const el = $(id); el.querySelector(".fill").style.height = (v/TK.CAP*100) + "%"; el.querySelector(".tval").textContent = Math.round(v);
+    el.classList.toggle("out", v < TK.LO || v > TK.HI);
+  }
+  document.querySelectorAll("#task .pump").forEach((b, i) => { const failed = tk.failUntil[i] > tk.t; b.classList.toggle("fail", failed); b.classList.toggle("on", tk.pumps[i] && !failed); b.setAttribute("aria-pressed", tk.pumps[i]); });
+  const left = Math.max(0, tk.dur - tk.t); $("tkTime").textContent = fmtT(Math.ceil(left));
+  $("tkScore").textContent = tk.devN ? `in band ${Math.round(tk.inBand/tk.devN*100)}%` + (tk.kind === "stress" ? ` · radio ${tk.hits}/${tk.calls}` : "") : "";
+}
+function finishTask(aborted){
+  if (!tk) return;
+  tk.running = false; clearInterval(tk.countIv); try { speechSynthesis.cancel(); } catch {}
+  if (aborted){ liveStop(tk.kind, false); closeTask(); return; }
+  tone(990, 0.2); setTimeout(() => tone(1320, 0.3), 220);
+  const k = tk.kind, cam = !!live.rec;
+  liveStop(k, true);
+  $("tkEndRec").textContent = cam ? "Your camera recording is saved and loaded into the next step." : "Stop your phone recording now.";
+  $("tkEndTitle").textContent = k === "stress" ? "Stress task complete" : "Calm recording complete";
+  $("tkEndStats").textContent = k === "stress" ? `Tanks in the green band ${Math.round(tk.inBand/tk.devN*100)}% of the time · radio calls answered ${tk.hits} of ${tk.calls} · wrong tunes or replies to other aircraft: ${tk.falseAlarms}` : "Next: upload this video in step 1 and scan it.";
+  const box = $("tkRate"); box.innerHTML = "";
+  for (let i=1;i<=10;i++){ const b = document.createElement("button"); b.className = "chip"; b.textContent = i; b.onclick = () => { ratings[k] = i; for (const x of box.children) x.setAttribute("aria-current", x === b); }; box.appendChild(b); }
+  $("tkEnd").hidden = false; renderTask();
+}
+function closeTask(){
+  const k = tk && tk.kind; $("task").hidden = true; $("tkEnd").hidden = true; $("tkCount").hidden = true;
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch {}
+  const completed = tk && !tk.running && tk.t >= tk.dur;
+  if (k === "calm" && completed){ $("calmMsg").textContent = live.stream ? "Calm screen finished. Your recording is loaded below." : "Calm screen finished. Upload that video below."; }
+  $("tkCam").hidden = true;
+  if (k === "stress" && completed){
+    wz.stressDone = true;
+    $("ws3Msg").textContent = `Stress task finished${ratings.stress ? ` (you rated it ${ratings.stress}/10)` : ""}. Upload the video you just recorded, then mark the pupil and scan it the same way as step 1.`;
+    updateWizard(); goStep("ws3"); requestAnimationFrame(() => drawSlot(ME.stress));
+  }
+  tk = null; if (meLast && !meLast.example) renderMe(meLast);
+}
+function tryConfirm(){
+  if (!tk || !tk.running || tk.kind !== "stress") return;
+  const r = tk.radio;
+  if (r && r.mine && Math.abs(tk.freq - r.target) < 0.001){ tk.hits++; radioStat(`Correct: tuned to ${freqStr(r.target)}`); tone(1320, 0.15); endCall(); }
+  else if (r && r.mine){ tk.falseAlarms++; radioStat("Wrong frequency: try again", "bad"); tone(150, 0.3, "sawtooth", 0.08); }
+  else { tk.falseAlarms++; radioStat(r ? `That call was for ${r.cs}, not you` : "No call is waiting for you", "bad"); tone(150, 0.3, "sawtooth", 0.08); }
+}
+function nudgeFreq(d){ if (!tk || !tk.running) return; tk.freq = Math.min(136.975, Math.max(118, Math.round((tk.freq + d)*40)/40)); $("tkFreq").textContent = freqStr(tk.freq); tone(500, 0.03, "sine", 0.03); }
+$("tkStartCalm").onclick = () => startTask("calm");
+$("tkStartStress").onclick = () => startTask("stress");
+$("tkQuit").onclick = () => finishTask(true);
+$("tkClose").onclick = closeTask;
+$("tkConfirm").onclick = tryConfirm;
+document.querySelectorAll("#task .pump").forEach((b, i) => b.onclick = () => { if (!tk || !tk.running || tk.kind === "calm") return; if (tk.failUntil[i] > tk.t){ tone(150, 0.15, "sawtooth", 0.05); return; } tk.pumps[i] = !tk.pumps[i]; tone(tk.pumps[i] ? 700 : 400, 0.05); renderTask(); });
+document.querySelectorAll("#task [data-f]").forEach(b => b.onclick = () => nudgeFreq(+b.dataset.f));
+document.addEventListener("keydown", e => {
+  if (!tk || !tk.running) return;
+  if (/^[1-4]$/.test(e.key)){ document.querySelectorAll("#task .pump")[+e.key-1].click(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft"){ nudgeFreq(-0.025); e.preventDefault(); }
+  else if (e.key === "ArrowRight"){ nudgeFreq(0.025); e.preventDefault(); }
+  else if (e.key === "ArrowUp"){ nudgeFreq(1); e.preventDefault(); }
+  else if (e.key === "ArrowDown"){ nudgeFreq(-1); e.preventDefault(); }
+  else if (e.key === "Enter"){ tryConfirm(); e.preventDefault(); }
+}, true);
+
+/* ---------- glossary hover definitions ---------- */
+const GL = new Map(); for (const terms of Object.values(GLOSS)) for (const t of terms) GL.set(t[0], t);
+const tip = $("tip");
+function showTip(el){
+  const t = GL.get(el.dataset.g); if (!t) return;
+  tip.innerHTML = `<b>${t[0]}</b>${t[2]}<small>Click for the full Glossary entry</small>`; tip.hidden = false;
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  let y = r.bottom + 8; if (y + th > innerHeight - 12) y = r.top - th - 8;
+  tip.style.left = Math.min(innerWidth - tw - 12, Math.max(12, r.left)) + "px"; tip.style.top = Math.max(12, y) + "px";
+}
+document.querySelectorAll(".term").forEach(el => { el.tabIndex = 0; el.setAttribute("role", "link"); });
+document.addEventListener("mouseover", e => { const el = e.target.closest(".term"); if (el) showTip(el); else tip.hidden = true; });
+document.addEventListener("focusin", e => { const el = e.target.closest && e.target.closest(".term"); if (el) showTip(el); });
+document.addEventListener("focusout", () => tip.hidden = true);
+addEventListener("scroll", () => tip.hidden = true, {passive: true});
+function openTerm(el){
+  tip.hidden = true; showView("gloss"); gCat = "All";
+  for (const x of $("gcats").children) x.setAttribute("aria-current", x.textContent === "All");
+  $("gsearch").value = el.dataset.g; renderGlossary(); scrollTo(0, 0);
+}
+document.addEventListener("click", e => { const el = e.target.closest(".term"); if (el) openTerm(el); });
+document.addEventListener("keydown", e => { const el = e.target.closest && e.target.closest(".term"); if (el && e.key === "Enter") openTerm(el); });
+
+/* ---------- guided tour ---------- */
+const TOUR = [
+  {sel: "#eyes", title: "A real pupil, replayed", text: "This eye's pupil follows a real recording from the dataset. The small rhythmic wobble is the hippus. Display → Exaggerate makes it easier to see."},
+  {sel: ".graphbox", title: "The wave, fitted live", text: "The white line is the last 30 seconds of pupil signal. Orange is the best-fit sine wave y = A·sin(B(t − C)) + D. Purple U-shapes are parabolas fitted to each constriction."},
+  {sel: ".transport", title: "Move through the session", text: "Play, pause, change speed, or drag the colored timeline. Each color is one phase: Rest, Work, Stress and Recovery."},
+  {sel: "aside.panel > details", title: "Read the numbers", text: "The stress meter compares the last 30 seconds with this person's Working baseline. Further down: jump to a phase, read the live equation, or fit the wave yourself in the Model lab."},
+  {sel: ".tabs", title: "Then see the answer", text: "Results answers the research question across all participants. My eye lets you repeat the experiment with two phone videos. Data & method explains the processing, and the Glossary explains every term."}
+];
+let tourI = -1, hole = null, tcard = null;
+function startTour(){
+  showView("sim"); tourI = 0;
+  if (!hole){ hole = document.createElement("div"); hole.id = "tourHole"; tcard = document.createElement("div"); tcard.id = "tourCard"; tcard.setAttribute("role", "dialog"); tcard.setAttribute("aria-live", "polite"); document.body.append(hole, tcard); }
+  hole.hidden = tcard.hidden = false; placeTour();
+}
+function endTour(){ tourI = -1; if (hole) hole.hidden = tcard.hidden = true; try { localStorage.setItem("hippusTourDone", "1"); } catch {} }
+function placeTour(){
+  if (tourI < 0) return;
+  const s = TOUR[tourI], el = document.querySelector(s.sel); if (!el) return endTour();
+  tcard.innerHTML = `<span class="tstep">Step ${tourI+1} of ${TOUR.length}</span><h3>${s.title}</h3><p>${s.text}</p>
+    <div class="trow"><button class="btn" id="tSkip">Skip tour</button><span style="display:flex;gap:6px">${tourI ? '<button class="btn" id="tBack">Back</button>' : ""}<button class="btn primary" id="tNext">${tourI === TOUR.length-1 ? "Start exploring" : "Next"}</button></span></div>`;
+  $("tSkip").onclick = endTour; $("tNext").onclick = () => { if (tourI === TOUR.length-1) endTour(); else { tourI++; placeTour(); } };
+  if ($("tBack")) $("tBack").onclick = () => { tourI--; placeTour(); };
+  el.scrollIntoView({block: "center"});
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (tourI < 0) return;
+    const r = el.getBoundingClientRect(), top = Math.max(4, r.top - 6), bottom = Math.min(innerHeight - 4, r.bottom + 6);
+    Object.assign(hole.style, {left: (r.left - 6) + "px", top: top + "px", width: (r.width + 12) + "px", height: (bottom - top) + "px"});
+    const cw = tcard.offsetWidth, ch = tcard.offsetHeight;
+    let y = bottom + 12; if (y + ch > innerHeight - 12) y = top - ch - 12; if (y < 12) y = innerHeight - ch - 16;
+    tcard.style.left = Math.min(innerWidth - cw - 16, Math.max(16, r.left)) + "px"; tcard.style.top = y + "px";
+    $("tNext").focus({preventScroll: true});
+  }));
+}
+$("tourBtn").onclick = startTour;
+addEventListener("resize", () => { if (tourI >= 0) placeTour(); });
+document.addEventListener("keydown", e => { if (tourI >= 0 && e.key === "Escape") endTour(); }, true);
+
+/* ---------- tab links and credits ---------- */
+const VIEW_TOKENS = {sim: "simulate", res: "results", me: "myeye", about: "method", gloss: "glossary"};
+// Author shown on the page and in the citation; leave school empty to omit it.
+const CREDITS = {author: "Asmin Shaik", school: "", year: 2026};
+(function renderCredits(){
+  const name = CREDITS.author, school = CREDITS.school ? CREDITS.school + ", " : "";
+  $("crAuthor").innerHTML = `${name}, ${school}${CREDITS.year}. Research question, analysis design and interactive simulation.`;
+  $("citeSelf").innerHTML = `${name}. (${CREDITS.year}). <i>Hippus Lab: Modeling pupil hippus under acute cognitive stress with sinusoidal and quadratic functions</i> [Interactive web simulation].${CREDITS.school ? " " + CREDITS.school + "." : ""}`;
+  $("copyCite").onclick = () => copyText($("citeSelf").innerText + "\n\n" + $("citeData").innerText.replace(/\n{2,}/g, "\n\n"), $("citeMsg"), $("credits"));
+})();
+
+/* ---------- layout / resize / theme ---------- */
+function layout(){
+  for (const cv of [$("eyeA"), $("eyeB"), trace, tl]) if (cv.offsetParent) if (sizeCanvas(cv) && cv === tl) tlDirty = true;
+  if (currentView === "res") { rDirty = true; renderResults(); }
+  if (currentView === "me" && meInit){ for (const s of Object.values(ME)) if (!s.busy) drawSlot(s); if (meLast) renderMe(meLast); }
+}
+new ResizeObserver(() => layout()).observe(document.body);
+
+if (!subjects.length){ $("loadText").textContent = "No recordings were found in the data file."; return; }
+readColors(); buildChips(); showInfo();
+st.t = st.S.ph[2].s + 45;           // open mid-way into Stress 1, so the first view shows a full wave
+const startView = Object.keys(VIEW_TOKENS).find(k => VIEW_TOKENS[k] === location.hash.slice(1));
+if (startView && startView !== "sim") showView(startView);
+layout(); setPlaying(true);
+requestAnimationFrame(frame);
+$("loader").hidden = true;
+let seen = false; try { seen = localStorage.getItem("hippusTourDone") === "1"; } catch {}
+if (!seen && currentView === "sim") setTimeout(startTour, 700);
+})();
+</script>
