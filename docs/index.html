@@ -253,6 +253,14 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
 details.mathbox{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 details.mathbox>summary{cursor:pointer;padding:10px 14px;font-weight:700}
 details.mathbox>.mathsteps{padding:0 14px 14px}
+.clfrow{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 150px;gap:10px;align-items:center;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+@media (max-width:620px){.clfrow{grid-template-columns:minmax(0,1fr)}}
+.clfbar{position:relative;height:18px;background:var(--surface-2);border-radius:5px}
+.clfbar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--accent)}
+.clfbar .ci{position:absolute;top:7px;height:4px;background:var(--ink);opacity:.55;border-radius:2px}
+.clfbar .chance{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--warn)}
+.clfrow .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.clfverdict{font-family:var(--f-display);font-size:20px;line-height:1.3;margin:10px 0 6px;text-wrap:balance}
 .linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
 /* stress task overlay: identical layout in both phases keeps screen brightness matched */
 #task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
@@ -477,6 +485,13 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <p class="answer" id="conclAnswer">Fitting waves for every participant…</p>
     <div class="kfacts" id="conclFacts"></div>
     <p id="conclText"></p>
+    <p id="conclClf"></p>
+  </section>
+  <section class="card" id="clfCard">
+    <h2>Can the equations tell stress apart?</h2>
+    <p>The tests below ask whether the <i>averages</i> differ. This <span class="term" data-g="Classification test">classification test</span> asks the research question directly. The computer is given only the numbers from the equations for a 60-second stretch of pupil recording (wave height A, wave speed B, midline D and the vertex curvature a) and must guess whether that stretch came from a <b>baseline</b> (Working) or a <b>stress</b> phase. It is always tested on a person it never learned from.</p>
+    <div id="clfBody"><p class="hint">Running the test…</p></div>
+    <details class="mathbox"><summary>Show the math: how the test works</summary><div class="mathsteps" id="clfMath"></div></details>
   </section>
   <section class="card">
     <h2>What participants did in each phase</h2>
@@ -502,6 +517,7 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <p>Each participant's recording was cut into overlapping 30-second windows. In each window the <span class="term" data-g="Hippus">hippus</span> signal was fitted with <span class="mono">y = A·sin(B(t − C)) + D</span>, and every constriction trough with <span class="mono">y = a(t − h)² + k</span>. Medians per phase are compared with a <span class="term" data-g="Paired t-test">paired t-test</span>. The headline number is <b>Stress minus <span class="term" data-g="Working baseline">Working baseline</span></b>, because both use the same screen and light. Each card also gives the <span class="term" data-g="Effect size (Cohen's d)">effect size d</span> and a <span class="term" data-g="95% confidence interval">95% confidence interval</span>.</p>
     <div class="progress" id="rProgress"><span id="rProgText">Analyzing participants…</span><div class="r2bar"><div id="rProgFill"></div></div></div>
     <div class="stats" id="hypStats"></div>
+    <p class="hint" id="holmNote" style="margin-top:10px"></p>
     <details class="mathbox"><summary>Show the math: the paired t-test for wave constant B, step by step</summary><div class="mathsteps" id="tMath"></div></details>
   </section>
   <section class="card" id="lightCard">
@@ -558,6 +574,7 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
         <option value="diam">Mean pupil diameter (mm)</option>
         <option value="qa">Vertex curvature a (mm/s²)</option>
         <option value="rate">Constrictions per minute</option>
+        <option value="Bc">Spectrum average speed B̄ (rad/s)</option>
         <option value="r2">Sine fit R²</option>
       </select></label>
     </div>
@@ -759,10 +776,11 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <h3>Processing steps</h3>
     <ol class="steps">
       <li><b>Clean.</b> Average left and right pupil, drop values outside 1–10 mm (blinks, tracking loss), and average every 25 samples (250 Hz → 10 Hz). Gaps are bridged by straight lines, both for analysis and for the animated eye.</li>
-      <li><b>Isolate the hippus.</b> Smooth with a 0.5 s moving average, then subtract a 20 s moving average. What remains is the fast oscillation around the midline (D).</li>
-      <li><b>Fit the sine.</b> For every 30 s window, try each frequency from 0.10 to 1.00 Hz and solve the least-squares fit of <span class="mono">a·sin(Bt) + b·cos(Bt)</span>. The best R² gives B; A = √(a² + b²) and C is the phase shift written as a horizontal shift.</li>
+      <li><b>Isolate the hippus.</b> Smooth with a 0.5 s moving average. Inside each analysis window, subtract the best straight line through the data, which removes slow drift without erasing slow waves. What remains is the oscillation around the midline (D).</li>
+      <li><b>Fit the sine.</b> For every 60 s window (sliding 10 s at a time), try each frequency from 0.033 to 1.00 Hz and solve the least-squares fit of <span class="mono">a·sin(Bt) + b·cos(Bt)</span>. The best fit gives B; A = √(a² + b²) and C is the phase shift written as a horizontal shift. As a check that doesn't depend on picking one best wave, the spectrum's power-weighted average speed (B̄) is also computed. An earlier version used 30 s windows searched from 0.10 Hz; many windows hit that limit because real pupil wobble is often slower, so it was replaced. The live Simulate view still uses 30 s windows for display.</li>
       <li><b>Fit the vertex.</b> Find each trough that is the lowest point within ±0.8 s and at least 0.03 mm below the preceding peak. Fit <span class="mono">y = at² + bt + c</span> over ±0.6 s and convert it to vertex form; 2a is the turning acceleration in mm/s².</li>
-      <li><b>Compare.</b> Take the median of each metric per phase. The main test is a paired t-test of Stress (mean of Stress 1 and 2) against the Working baseline, reported with Cohen's d and a 95% confidence interval. Rest vs. Stress is reported too, but lighting differs between them.</li>
+      <li><b>Compare.</b> Take the median of each metric per phase. The main test is a paired t-test of Stress (mean of Stress 1 and 2) against the Working baseline, reported with Cohen's d and a 95% confidence interval. Because four measures are tested, p-values are Holm-corrected. Rest vs. Stress is reported too, but lighting differs between them.</li>
+      <li><b>Classify.</b> Each 60 s window's equation numbers (A, B, D, a) become z-scores within their person. A class-weighted logistic regression is trained on 34 people and tested on the 35th, for every person, and balanced accuracy is compared with 50% using a one-sample t-test (Holm-corrected across four feature sets).</li>
       <li><b>Time-lock and correlate.</b> Average every participant's pupil change around each phase start, and correlate each person's Working-to-Stress change with their CD-RISC resilience score (Pearson r).</li>
     </ol>
   </section>
@@ -864,8 +882,18 @@ function movavg(x, w){
   for (let i=0;i<n;i++){ const a=Math.max(0,i-h), b=Math.min(n,i+h+1); out[i]=(cs[b]-cs[a])/(b-a); }
   return out;
 }
+// data.json stores pupil size compactly ("pd"): thousandths of a mm, each as the change from the previous
+// valid reading, with an empty slot where a reading is missing. raw/compact.ps1 writes it.
+function decodePupil(pd){
+  const parts = pd.split(","), out = new Array(parts.length); let v = 0, first = true;
+  for (let i=0;i<parts.length;i++){
+    if (parts[i] === ""){ out[i] = null; continue; }
+    v = first ? +parts[i] : v + +parts[i]; first = false; out[i] = v/1000;
+  }
+  return out;
+}
 function prep(d){
-  const raw = d.pupil, n = raw.length, x = new Float32Array(n), valid = new Uint8Array(n);
+  const raw = d.pupil || decodePupil(d.pd), n = raw.length, x = new Float32Array(n), valid = new Uint8Array(n);
   let last = -1, sum = 0, cnt = 0;
   for (let i=0;i<n;i++){
     const v = raw[i];
@@ -950,15 +978,61 @@ function troughs(S, i0, i1){
 }
 const median = a => { if (!a.length) return NaN; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
 
+// Analysis wave fit, used for Results and My eye. The live 30-second fit above often ran into its slowest
+// allowed speed (0.10 Hz): real hippus is often slower. So this fit uses 60-second windows, removes a
+// straight-line trend inside the window (a 20 s moving average would erase slow waves), and searches speeds
+// from 0.033 Hz (two full waves per minute) to 1 Hz. It also returns the spectrum's power-weighted mean
+// frequency as an independent check on B that doesn't depend on picking a single best wave.
+const AW = {WIN: 60, FMIN: 0.033, FMAX: 1.0};
+function fitWave(S, i0, i1, fmin = AW.FMIN){
+  i0 = Math.max(0, i0|0); i1 = Math.min(S.n, i1|0);
+  const len = i1 - i0; let n = 0, st = 0, sy = 0, stt = 0, sty = 0;
+  for (let i=i0;i<i1;i++) if (S.valid[i]){ const t = (i-i0)/FS, y = S.sm[i]; n++; st += t; sy += y; stt += t*t; sty += t*y; }
+  if (n < len*0.7 || n < 150) return null;
+  const beta = (n*sty - st*sy)/(n*stt - st*st), alpha = (sy - beta*st)/n;
+  const y = new Float32Array(len); let Syy = 0;
+  for (let i=i0;i<i1;i++) if (S.valid[i]){ const r = S.sm[i] - (alpha + beta*(i-i0)/FS); y[i-i0] = r; Syy += r*r; }
+  const dt = 1/FS;
+  const evalF = f => {
+    const w = 2*Math.PI*f, cs = Math.cos(w*dt), sn = Math.sin(w*dt);
+    let s = 0, co = 1, Sss=0, Scc=0, Ssc=0, Sxs=0, Sxc=0;
+    for (let k=0;k<len;k++){
+      if (S.valid[i0+k]){ const v = y[k]; Sss += s*s; Scc += co*co; Ssc += s*co; Sxs += v*s; Sxc += v*co; }
+      const ns = s*cs + co*sn; co = co*cs - s*sn; s = ns;
+    }
+    const det = Sss*Scc - Ssc*Ssc; if (Math.abs(det) < 1e-9) return null;
+    const a = (Sxs*Scc - Sxc*Ssc)/det, b = (Sxc*Sss - Sxs*Ssc)/det;
+    return {f, w, a, b, red: Math.max(0, a*Sxs + b*Sxc)};
+  };
+  let best = null, pw = 0, pf = 0;
+  for (let f=fmin; f<=AW.FMAX+1e-9; f+=0.005){ const r = evalF(f); if (!r) continue; pw += r.red; pf += r.f*r.red; if (!best || r.red > best.red) best = r; }
+  if (!best) return null;
+  const f0 = best.f;
+  for (let f=Math.max(fmin, f0-0.005); f<=Math.min(AW.FMAX, f0+0.005); f+=0.0005){ const r = evalF(f); if (r && r.red > best.red) best = r; }
+  const A = Math.hypot(best.a, best.b), phi = Math.atan2(best.b, best.a), T = 2*Math.PI/best.w;
+  let Cs = (i0/FS - phi/best.w) % T; if (Cs < 0) Cs += T;
+  let D = 0, dc = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { D += S.x[i]; dc++; }
+  const fc = pw > 0 ? pf/pw : NaN;
+  return {A, B: best.w, f: best.f, C: Cs, T, r2: Syy > 0 ? best.red/Syy : 0, D: D/dc, sa: best.a, cb: best.b, phi, n,
+          fc, Bc: 2*Math.PI*fc, alpha, beta, t0: i0/FS, atFloor: best.f < fmin + 0.001};
+}
 function phaseMetrics(S, p){
-  if (p.e - p.s < 20) return {A:NaN, B:NaN, r2:NaN, diam:NaN, qa:NaN, rate:NaN};
-  const i0 = Math.round(p.s*FS), i1 = Math.round(p.e*FS), L = WIN*FS;
-  const As=[],Bs=[],R2=[];
-  for (let s=i0; s+L<=i1; s+=100){ const f = fitSine(S, s, s+L); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
-  if (!As.length && i1-i0 >= 200){ const f = fitSine(S, i0, i1); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
-  let d=0,c=0; for (let i=i0;i<i1;i++) if (S.valid[i]) { d+=S.x[i]; c++; }
+  if (p.e - p.s < 20) return {A:NaN, B:NaN, r2:NaN, diam:NaN, qa:NaN, rate:NaN, Bc:NaN, floor:NaN, wins:[]};
+  const i0 = Math.round(p.s*FS), i1 = Math.round(p.e*FS), L = AW.WIN*FS;
   const tr = troughs(S, i0, i1);
-  return {A:median(As), B:median(Bs), r2:median(R2), diam:c?d/c:NaN, qa:median(tr.map(t=>t.a)), rate: tr.length/((p.e-p.s)/60)};
+  const As=[], Bs=[], R2=[], Bcs=[], wins=[]; let floor = 0;
+  // one entry per 60 s window: the equation numbers the classification test learns from
+  const add = (s, e, fmin) => {
+    const f = fitWave(S, s, e, fmin); if (!f) return;
+    As.push(f.A); Bs.push(f.B); R2.push(f.r2); Bcs.push(f.Bc); floor += f.atFloor;
+    const q = tr.filter(t => t.i >= s && t.i < e).map(t => t.a);
+    wins.push({A: f.A, B: f.B, D: f.D, qa: q.length ? median(q) : NaN});
+  };
+  for (let s=i0; s+L<=i1; s+=100) add(s, s+L);
+  if (!As.length && i1-i0 >= 300) add(i0, i1, Math.max(AW.FMIN, 2/((i1-i0)/FS)));
+  let d=0,c=0; for (let i=i0;i<i1;i++) if (S.valid[i]) { d+=S.x[i]; c++; }
+  return {A:median(As), B:median(Bs), r2:median(R2), diam:c?d/c:NaN, qa:median(tr.map(t=>t.a)), rate: tr.length/((p.e-p.s)/60),
+          Bc: median(Bcs), floor: As.length ? floor/As.length : NaN, wins};
 }
 
 /* ---------- state ---------- */
@@ -968,13 +1042,15 @@ async function loadData(){
   try {
     const res = await fetch("data.json");
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const total = +res.headers.get("Content-Length") || 0, reader = res.body.getReader(), chunks = [];
+    // Content-Length is the compressed size when the server gzips, while the reader sees unzipped bytes,
+    // so the length is only trusted when the response isn't encoded.
+    const enc = res.headers.get("Content-Encoding"), total = enc ? 0 : (+res.headers.get("Content-Length") || 0), reader = res.body.getReader(), chunks = [];
     let got = 0;
     for (;;){
       const {done, value} = await reader.read(); if (done) break;
       chunks.push(value); got += value.length;
       txt.textContent = `Loading pupil recordings… ${(got/1e6).toFixed(1)}${total ? " of " + (total/1e6).toFixed(1) : ""} MB`;
-      fill.style.width = total ? (got/total*90) + "%" : Math.min(90, got/5e4) + "%";
+      fill.style.width = (total ? Math.min(90, got/total*90) : Math.min(90, got/2.2e6*90)) + "%";
     }
     const buf = new Uint8Array(got); let o = 0; for (const c of chunks){ buf.set(c, o); o += c.length; }
     txt.textContent = "Preparing signals…"; fill.style.width = "95%";
@@ -1321,7 +1397,7 @@ function renderMathLive(now, S, f, tr){
   let h = `
   <div class="mstep"><b>1 · Find the midline D</b>Average of the ${f.n} pupil readings in the last 30 s (10 per second):<span class="eqn">D = (sum of readings) ÷ ${f.n} = <i>${f.D.toFixed(3)} mm</i></span></div>
   <div class="mstep"><b>2 · Remove the slow drift</b>Subtract a 20-second running average so only the fast wobble is left. Right now: reading ${S.sm[i1].toFixed(3)} − drift ${S.ma[i1].toFixed(3)} = wobble <i>${fx(S.hp[i1],3)} mm</i></div>
-  <div class="mstep"><b>3 · Find B (how fast it repeats)</b>The computer tries 91 speeds, f = 0.10, 0.11 … 1.00 waves per second, plus a finer search near the best one, and keeps the speed whose wave misses the data least.<span class="eqn">best f = ${f.f.toFixed(3)} Hz → B = 2π·f = 2π × ${f.f.toFixed(3)} = <i>${f.B.toFixed(3)} rad/s</i></span><span class="eqn">period T = 2π ÷ B = ${(2*Math.PI).toFixed(3)} ÷ ${f.B.toFixed(3)} = <i>${f.T.toFixed(2)} s</i> per wave</span></div>
+  <div class="mstep"><b>3 · Find B (how fast it repeats)</b>The computer tries 91 speeds, f = 0.10, 0.11 … 1.00 waves per second, plus a finer search near the best one, and keeps the speed whose wave misses the data least.<span class="eqn">best f = ${f.f.toFixed(3)} Hz → B = 2π·f = 2π × ${f.f.toFixed(3)} = <i>${f.B.toFixed(3)} rad/s</i></span><span class="eqn">period T = 2π ÷ B = ${(2*Math.PI).toFixed(3)} ÷ ${f.B.toFixed(3)} = <i>${f.T.toFixed(2)} s</i> per wave</span>This live view uses 30-second windows so it fits the chart. The Results tab uses longer 60-second windows searched from 0.033 waves per second, which can catch slower waves.</div>
   <div class="mstep"><b>4 · Find A and C (height and shift)</b>With B fixed, least squares writes the wobble as a sine part plus a cosine part:<span class="eqn">wobble ≈ a·sin(Bt) + b·cos(Bt), a = ${fx(f.sa,4)}, b = ${fx(f.cb,4)}</span>The Pythagorean theorem combines them into one wave:<span class="eqn">A = √(a² + b²) = √(${px_(f.sa,4)}² + ${px_(f.cb,4)}²) = <i>${f.A.toFixed(4)} mm</i></span><span class="eqn">C = −atan2(b, a) ÷ B, moved into 0…T = <i>${f.C.toFixed(2)} s</i></span></div>
   <div class="mstep"><b>5 · Check it against the data</b>Plug a time into the wave, for example t = ${ex.t.toFixed(1)} s:<span class="eqn">A·sin(B(t − C)) = ${f.A.toFixed(3)}·sin(${f.B.toFixed(3)} × (${ex.t.toFixed(1)} − ${f.C.toFixed(2)})) = ${f.A.toFixed(3)}·sin(${ex.ang.toFixed(1)} rad) = ${f.A.toFixed(3)} × ${px_(Math.sin(ex.ang),3)} = <i>${fx(ex.pred,3)} mm</i></span>Doing the same at three moments in the window:<span class="eqn">${checks.map(q => `t = ${q.t.toFixed(1)} s: predicted ${fx(q.pred,3)}, measured ${fx(q.wob,3)}, miss ${Math.abs(q.wob - q.pred).toFixed(3)} mm`).join("<br>")}</span>Typical miss: <i>${avgMiss.toFixed(3)} mm</i>. Real pupils wobble irregularly, so a single smooth wave can't hit every point.</div>
   <div class="mstep"><b>6 · Score the fit</b><span class="eqn">R² = 1 − (sum of squared misses) ÷ (sum of squared wobbles) = <i>${f.r2.toFixed(2)}</i></span>The wave explains about ${Math.round(Math.max(0, f.r2)*100)}% of the wobbling; real pupils are irregular, so 10–40% is normal.</div>`;
@@ -1410,8 +1486,8 @@ function betacf(x,a,b){
 }
 function lgamma(z){ const g=7, cf=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
   if (z<0.5) return Math.log(Math.PI/Math.sin(Math.PI*z)) - lgamma(1-z); z-=1; let x=cf[0]; for (let i=1;i<g+2;i++) x+=cf[i]/(z+i); const t=z+g+0.5; return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x); }
-const UNITS = {B:"rad/s", A:"mm", diam:"mm", qa:"mm/s²", rate:"/min", r2:""};
-const DEC = {B:2, A:3, diam:2, qa:2, rate:1, r2:2};
+const UNITS = {B:"rad/s", Bc:"rad/s", A:"mm", diam:"mm", qa:"mm/s²", rate:"/min", r2:""};
+const DEC = {B:2, Bc:2, A:3, diam:2, qa:2, rate:1, r2:2};
 function stressVal(m, key){ const a = m[2][key], b = m[4][key]; return isFinite(a) && isFinite(b) ? (a+b)/2 : isFinite(a) ? a : b; }
 // Fitting all participants takes a moment, so it runs in small slices between frames.
 let rReady = false, rBusy = false;
@@ -1440,24 +1516,38 @@ function renderResults(){
     ["diam", "Mean pupil size", "Classic stress marker: the pupil dilates under load."],
     ["qa", "Vertex curvature a", "Sharper constriction troughs would mean faster turnaround."]
   ];
-  const tests = {};
-  $("hypStats").innerHTML = rows.map(([k, name, why]) => {
+  const tests = {}, t2s = {};
+  for (const [k] of rows){
     const rest = all.map(o=>o.m[0][k]), work = all.map(o=>o.m[REF][k]), str = all.map(o=>stressVal(o.m,k));
-    const t1 = tTest(str, work), t2 = tTest(str, rest), u = UNITS[k], dec = DEC[k];
-    tests[k] = t1;
+    tests[k] = tTest(str, work); t2s[k] = tTest(str, rest);
+  }
+  // Holm correction: four tests are run at once, so each p-value is adjusted to keep the overall
+  // chance of any false "significant" result at 5%.
+  const keys = rows.map(r => r[0]).filter(k => tests[k]).sort((a, b) => tests[a].p - tests[b].p);
+  let run = 0;
+  keys.forEach((k, j) => { run = Math.max(run, Math.min(1, (keys.length - j)*tests[k].p)); tests[k].pAdj = run; tests[k].holmRank = j + 1; });
+  const bFloor = all.map(o => [o.m[REF].floor, o.m[2].floor, o.m[4].floor]).flat().filter(isFinite);
+  const floorPct = bFloor.length ? Math.round(bFloor.reduce((a,b)=>a+b,0)/bFloor.length*100) : 0;
+  const tBc = tTest(all.map(o => stressVal(o.m,"Bc")), all.map(o => o.m[REF].Bc));
+  $("hypStats").innerHTML = rows.map(([k, name, why]) => {
+    const t1 = tests[k], t2 = t2s[k], u = UNITS[k], dec = DEC[k];
     const line = (lab, t) => t ? `${lab}: Δ = ${sgn(t.m,dec)} ${u}, t(${t.df}) = ${t.t.toFixed(2)}, ${fmtP(t.p).replace("<","&lt;")}` : `${lab}: not enough data`;
-    const sig = t1 && t1.p < 0.05, dir = t1 && t1.m > 0 ? "increase" : "decrease";
+    const sig = t1 && t1.pAdj < 0.05, dir = t1 && t1.m > 0 ? "increase" : "decrease";
+    const extra = k === "B" ? `<span class="sub mono" style="font-size:12px">Spectrum check (B̄, average speed): Δ = ${tBc ? sgn(tBc.m,2) : "–"} rad/s, ${tBc ? fmtP(tBc.p).replace("<","&lt;") : ""}<br>Windows at the slowest speed searched: ${floorPct}%</span>` : "";
     return `<div class="stat"><span class="lab">${name}</span>
       <span class="num mono">${t1 ? sgn(t1.m,dec) : "–"} <small style="font-size:14px;color:var(--muted)">${u}</small></span>
       <span class="sub">Stress minus Working, mean of ${t1 ? t1.n : 0} participants</span>
-      <span class="verdict ${sig?"yes":"no"}">${sig ? `Significant ${dir} (${fmtP(t1.p)})` : "Not significant at p < 0.05"}</span>
+      <span class="verdict ${sig?"yes":"no"}">${sig ? `Significant ${dir} (Holm ${fmtP(t1.pAdj)})` : "Not significant after Holm correction"}</span>
       ${t1 ? `<span class="sub mono" style="font-size:12px">95% CI ${sgn(t1.lo,dec)} to ${sgn(t1.hi,dec)}<br>d = ${t1.d.toFixed(2)} (${sizeWord(t1.d)}) · higher in ${t1.up} of ${t1.n}</span>` : ""}
-      <span class="sub mono" style="font-size:12px">${line("vs working", t1)}<br>${line("vs rest", t2)}</span>
+      <span class="sub mono" style="font-size:12px">${line("vs working", t1)}${t1 ? ` → Holm-adjusted ${fmtP(t1.pAdj).replace("<","&lt;")}` : ""}<br>${line("vs rest", t2)}</span>
+      ${extra}
       <span class="sub">${why}</span></div>`;
   }).join("");
+  $("holmNote").innerHTML = `<b>Correcting for four tests (Holm method):</b> testing four measures at once raises the chance that one looks "significant" by luck. The Holm method sorts the four p-values from smallest to largest and multiplies them by 4, 3, 2 and 1, never letting a later one fall below an earlier one: ${keys.map(k => `${rows.find(r => r[0] === k)[1]} ${tests[k].p < 0.001 ? "p&lt;0.001" : "p=" + tests[k].p.toFixed(3)} × ${keys.length - tests[k].holmRank + 1} → ${tests[k].pAdj < 0.001 ? "&lt;0.001" : tests[k].pAdj.toFixed(3)}`).join(" · ")}. Verdicts use the adjusted values.`;
   renderConclusion(tests, all.length);
   renderTMath(all, tests.B);
   renderPipeline(all);
+  setTimeout(() => renderClassifier(all), 30);
   drawResultsChart(all);
   renderLight(all);
   drawOnset();
@@ -1494,8 +1584,8 @@ function renderPipeline(all){
   const totalReadings = all.reduce((a, q) => { let v = 0; for (let i=0;i<q.S.n;i++) v += q.S.valid[i]; return a + v; }, 0);
   let mine = 0; for (let i=0;i<S.n;i++) mine += S.valid[i];
   const p2 = S.ph[2], i0 = Math.round(p2.s*FS), i1 = Math.round(p2.e*FS), Bs = [];
-  for (let s=i0; s+WIN*FS<=i1; s+=100){ const f = fitSine(S, s, s+WIN*FS); if (f) Bs.push({t: s/FS, B: f.B}); }
-  const sortedB = Bs.map(b => b.B).sort((a,b) => a-b), atFloor = sortedB.filter(b => b < 2*Math.PI*0.1005).length;
+  for (let s=i0; s+AW.WIN*FS<=i1; s+=100){ const f = fitWave(S, s, s+AW.WIN*FS); if (f) Bs.push({t: s/FS, B: f.B}); }
+  const floorB = 2*Math.PI*AW.FMIN, sortedB = Bs.map(b => b.B).sort((a,b) => a-b), atFloor = sortedB.filter(b => b < 2*Math.PI*(AW.FMIN + 0.001)).length;
   const trS1 = troughs(S, i0, i1);
   let dsum = 0, dn = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { dsum += S.x[i]; dn++; }
   const cnt = k => all.filter(q => isFinite(stressVal(q.m, k)) && isFinite(q.m[REF][k])).length;
@@ -1508,7 +1598,7 @@ function renderPipeline(all){
   $("pipeSteps").innerHTML = `
   <div class="mstep stat"><b>1 · The raw material</b>${all.length} participants, each recorded for about ${Math.round(S.dur/60)} minutes. Pupil size was averaged to 10 readings per second, giving <i>${totalReadings.toLocaleString()}</i> usable readings in all (blinks removed). ${id} contributed <i>${mine.toLocaleString()}</i> of them.</div>
   <div class="mstep stat"><b>2 · Cut each recording into the 6 phases</b>The researchers' event markers say when each phase began. For ${id}:<span class="eqn">${S.ph.map(p => `${p.short}: ${fmtT(p.s)}–${fmtT(p.e)}`).join(" · ")}</span></div>
-  <div class="mstep"><b>3 · Fit a wave every 10 seconds</b>Inside each phase, a 30-second window slides forward 10 seconds at a time, and y = A·sin(B(t − C)) + D is fitted in every window. ${id}'s Stress 1 phase gave <i>${Bs.length} windows</i>. Their B values, smallest to largest:<span class="eqn">${sortedB.map(b => b.toFixed(2)).join(", ")}</span>The <b>median</b> (middle value) is used, not the average, so a few bad windows (a blink, a glance away) can't drag it: <i>B = ${v2(m[2].B)} rad/s</i>. A is found the same way: <i>A = ${v3(m[2].A)} mm</i>.${atFloor ? ` <br><b>Note:</b> ${atFloor} of these windows sit at 0.63, the slowest speed the search tries (0.10 waves per second, B = 2π × 0.10). In those windows the wobble was slower than the search range, so B there is a lower limit, not an exact value. This is a limit of the method worth mentioning in a write-up.` : ""}</div>
+  <div class="mstep"><b>3 · Fit a wave every 10 seconds</b>Inside each phase, a 60-second window slides forward 10 seconds at a time. In each window a straight-line trend is removed and y = A·sin(B(t − C)) + D is fitted, trying speeds from ${AW.FMIN} to ${AW.FMAX.toFixed(2)} waves per second. ${id}'s Stress 1 phase gave <i>${Bs.length} windows</i>. Their B values, smallest to largest:<span class="eqn">${sortedB.map(b => b.toFixed(2)).join(", ")}</span>The <b>median</b> (middle value) is used, not the average, so a few bad windows (a blink, a glance away) can't drag it: <i>B = ${v2(m[2].B)} rad/s</i>. A is found the same way: <i>A = ${v3(m[2].A)} mm</i>.${atFloor ? ` <br><b>Note:</b> ${atFloor} of these windows sit at ${floorB.toFixed(2)}, the slowest speed the search tries (${AW.FMIN} waves per second). In those windows the wobble was slower still, so B there is a lower limit, not an exact value.` : ` None of these windows hit the slowest speed searched (B = ${floorB.toFixed(2)}).`} <br><b>Why 60 seconds:</b> an earlier version used 30-second windows that could only detect speeds down to 0.10 waves per second. Many windows ran into that limit, because real pupil wobble is often slower. A 60-second window fits at least two full slow waves.</div>
   <div class="mstep vert"><b>4 · Pupil size and constriction vertices</b><span class="eqn">Pupil size = average of the ${dn.toLocaleString()} readings in Stress 1 = <i>${v2(dsum/dn)} mm</i></span><span class="eqn">${trS1.length} constriction dips were found; vertex curvature a = median of their a values = <i>${v2(m[2].qa)} mm/s²</i></span></div>
   <div class="mstep stat"><b>5 · One number per person per phase</b>Steps 3–4 run for all 6 phases of all ${all.length} people, filling the table at the bottom of this page (${all.length} rows × 6 phases). For the comparison, each person's <b>Stress</b> value is the average of their two stress phases:<span class="eqn">${id}: Stress B = (Stress 1 + Stress 2) ÷ 2 = (${v2(m[2].B)} + ${v2(m[4].B)}) ÷ 2 = <i>${v2(stressVal(m,"B"))} rad/s</i>, compared with Working ${v2(m[REF].B)}</span></div>
   <div class="mstep stat"><b>6 · Turning 35 people into the results</b>
@@ -1518,6 +1608,96 @@ function renderPipeline(all){
     <span class="eqn"><b>Resilience scatter:</b> one dot per person (CD-RISC score, change in pupil size); Pearson's r measures how well a straight line fits the ${pr ? pr.n : 0} dots: r = ${pr ? pr.r.toFixed(2) : "–"}</span>
     <span class="eqn"><b>Conclusion:</b> written from the test cards: "supported" only if A or B rose with p &lt; 0.05.</span></div>
   <div class="mstep"><b>7 · Missing values</b>A phase gets no wave value when less than 70% of a window is clean signal, and no value at all when the phase wasn't recorded. ${short.length ? `${short.join(", ")} ${short.length === 1 ? "has" : "have"} a phase that is missing or too short (P16's session stopped after 21 minutes). ` : ""}The tests use only people who have both a Working and a Stress value: ${cnt("B")} people for B, ${cnt("A")} for A, ${cnt("diam")} for pupil size.${[cnt("B"), cnt("A"), cnt("diam")].every(n => n === all.length) ? ` That is all ${all.length}: when one stress phase is missing, the Stress value uses the other one alone.` : ` People missing a value are left out of that test only.`}</div>`;
+}
+/* ---------- classification test: can the equation numbers tell stress from baseline? ---------- */
+// Samples are 60 s windows: Working baseline windows are labeled 0, Stress 1 and Stress 2 windows 1.
+// Each feature is converted to a z-score within its person (using all their windows, without looking at
+// the labels), so the test is about changes within a person, not about who has big or small pupils.
+// A class-weighted logistic regression is trained on 34 people and tested on the 35th, for every person.
+const CLF_FEAT = {A: "Wave height A", B: "Wave speed B", D: "Midline D", qa: "Vertex curvature a"};
+const CLF_SETS = [["Sine wave only (A, B)", ["A","B"]], ["Vertex only (a)", ["qa"]], ["Sine wave + vertex (A, B, a)", ["A","B","qa"]], ["All equation parts (A, B, D, a)", ["A","B","D","qa"]]];
+let clfCache = null;
+function personSamples(o){
+  const rows = [...o.m[REF].wins.map(w => ({...w, y: 0})), ...o.m[2].wins.map(w => ({...w, y: 1})), ...o.m[4].wins.map(w => ({...w, y: 1}))];
+  const z = {};
+  for (const k of Object.keys(CLF_FEAT)){
+    const v = rows.map(r => r[k]).filter(isFinite), mu = v.reduce((a,b)=>a+b,0)/(v.length||1);
+    const sd = Math.sqrt(v.reduce((a,b)=>a+(b-mu)**2,0)/Math.max(1, v.length-1));
+    z[k] = {mu, sd};
+  }
+  return rows.map(r => { const o2 = {y: r.y}; for (const k of Object.keys(CLF_FEAT)) o2[k] = isFinite(r[k]) && z[k].sd > 0 ? (r[k] - z[k].mu)/z[k].sd : 0; return o2; });
+}
+function solveLin(H, g){
+  const n = g.length, M = H.map((row, i) => [...row, g[i]]);
+  for (let c=0;c<n;c++){
+    let p = c; for (let r=c+1;r<n;r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]]; const d = M[c][c] || 1e-12;
+    for (let r=0;r<n;r++){ if (r === c) continue; const f = M[r][c]/d; for (let k=c;k<=n;k++) M[r][k] -= f*M[c][k]; }
+  }
+  return M.map((row, i) => row[n]/(row[i] || 1e-12));
+}
+// Logistic regression by Newton's method (iteratively reweighted least squares), small ridge penalty.
+function fitLogit(X, y, w, lam = 0.01){
+  const p = X[0].length; let b = new Array(p).fill(0);
+  for (let it=0; it<15; it++){
+    const H = Array.from({length: p}, (_, i) => Array.from({length: p}, (_, j) => (i === j && i > 0) ? lam : 0)), g = b.map((v, i) => i > 0 ? -lam*v : 0);
+    for (let i=0;i<X.length;i++){
+      let zz = 0; for (let j=0;j<p;j++) zz += b[j]*X[i][j];
+      const mu = 1/(1 + Math.exp(-zz)), wi = w[i]*mu*(1-mu), ri = w[i]*(y[i] - mu);
+      for (let j=0;j<p;j++){ g[j] += ri*X[i][j]; for (let k=0;k<p;k++) H[j][k] += wi*X[i][j]*X[i][k]; }
+    }
+    const d = solveLin(H, g); b = b.map((v, i) => v + d[i]);
+    if (Math.max(...d.map(Math.abs)) < 1e-6) break;
+  }
+  return b;
+}
+function classWeights(y){ const n1 = y.filter(v => v === 1).length, n0 = y.length - n1; return y.map(v => v ? y.length/(2*n1) : y.length/(2*n0)); }
+function runClassifier(all){
+  const people = all.map(o => ({id: o.S.id.toUpperCase(), rows: personSamples(o)})).filter(p => p.rows.some(r => r.y === 0) && p.rows.some(r => r.y === 1));
+  return CLF_SETS.map(([name, feats]) => {
+    const vec = r => [1, ...feats.map(k => r[k])];
+    const accs = people.map((P, pi) => {
+      const train = people.filter((_, j) => j !== pi).flatMap(q => q.rows);
+      const ty = train.map(r => r.y), b = fitLogit(train.map(vec), ty, classWeights(ty));
+      let tp = 0, tn = 0, n1 = 0, n0 = 0;
+      for (const r of P.rows){ const x = vec(r); let zz = 0; for (let j=0;j<x.length;j++) zz += b[j]*x[j]; const guess = zz > 0 ? 1 : 0; if (r.y){ n1++; tp += guess; } else { n0++; tn += 1 - guess; } }
+      return (tp/n1 + tn/n0)/2;
+    });
+    const n = accs.length, mean = accs.reduce((a,b)=>a+b,0)/n, sd = Math.sqrt(accs.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)), se = sd/Math.sqrt(n), tc = tinv(0.975, n-1);
+    const t = (mean - 0.5)/se, p = 2*(1 - tcdf(Math.abs(t), n-1));
+    const ally = people.flatMap(q => q.rows.map(r => r.y)), bAll = fitLogit(people.flatMap(q => q.rows.map(vec)), ally, classWeights(ally));
+    return {name, feats, mean, lo: mean - tc*se, hi: mean + tc*se, t, p, n, above: accs.filter(a => a > 0.5).length, accs, weights: bAll, windows: ally.length, n1: ally.filter(v => v).length};
+  });
+}
+function renderClassifier(all){
+  if (!clfCache) clfCache = runClassifier(all);
+  const R = clfCache;
+  const ord = R.map((r, i) => i).sort((a, b) => R[a].p - R[b].p); let run = 0;
+  ord.forEach((i, j) => { run = Math.max(run, Math.min(1, (R.length - j)*R[i].p)); R[i].pAdj = run; });
+  const best = R.reduce((a, b) => b.mean > a.mean ? b : a), pct = v => Math.round(v*100);
+  const sigBest = best.pAdj < 0.05;
+  // How much of the best score comes from the midline D (pupil size) rather than the wave shape?
+  const shape = R.filter(r => !r.feats.includes("D")).reduce((a, b) => b.mean > a.mean ? b : a);
+  const dDriven = best.feats.includes("D") && best.mean - shape.mean > 0.05;
+  const shapeNote = dDriven ? ` Most of that comes from the midline D, which is the pupil's size. The wave shape and vertex alone (${shape.name.replace(/ \(.*/, "").toLowerCase()}) reach <b>${pct(shape.mean)}%</b>${shape.pAdj < 0.05 ? ": still better than chance, but modest" : ", which is not reliably better than chance"}.` : "";
+  const rowsHtml = R.map(r => `<div class="clfrow"><span><b>${r.name}</b></span>
+    <div class="clfbar" title="50% = guessing"><div class="fill" style="width:${pct(r.mean)}%;${r.pAdj < 0.05 ? "" : "background:var(--muted)"}"></div><div class="ci" style="left:${pct(r.lo)}%;width:${Math.max(1, pct(r.hi) - pct(r.lo))}%"></div><div class="chance" style="left:50%"></div></div>
+    <span class="val">${pct(r.mean)}% (${pct(r.lo)}–${pct(r.hi)}) · ${r.pAdj < 0.001 ? "p&lt;0.001" : "p=" + r.pAdj.toFixed(3)}</span></div>`).join("");
+  const all4 = R[3], wl = all4.feats.map((k, i) => ({k, w: all4.weights[i+1]})).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
+  $("clfBody").innerHTML = `
+    <p class="clfverdict">${sigBest ? `Yes, better than guessing: using ${best.name.replace(/ \(.*/, "").toLowerCase()}, the computer labeled 60-second stretches correctly <b>${pct(best.mean)}%</b> of the time for people it had never seen (chance is 50%).${shapeNote}` : `No: the best set of equation numbers labeled stretches correctly only ${pct(best.mean)}% of the time, not reliably better than the 50% you'd get by guessing.`}</p>
+    <div>${rowsHtml}</div>
+    <p class="hint" style="margin-top:6px">Bars show balanced accuracy averaged over the ${best.n} people, each tested after training on the others. The black line is the 95% confidence range, and the orange tick marks 50% (guessing). Grey bars are not significantly better than chance after the Holm correction across the four tests. ${best.windows.toLocaleString()} windows in all (${best.n1.toLocaleString()} stress, ${(best.windows - best.n1).toLocaleString()} baseline).</p>
+    <h3 style="margin-top:12px">Which equation parts point to stress?</h3>
+    <p>${wl.map(o => `<b>${CLF_FEAT[o.k]}</b>: weight ${o.w >= 0 ? "+" : "−"}${Math.abs(o.w).toFixed(2)} (${o.w >= 0 ? "a higher value than usual for that person" : "a lower value than usual for that person"} points toward stress)`).join("<br>")}</p>
+    <p class="hint">Weights come from the model trained on everyone, using all four parts. A bigger number (ignoring the sign) means that part moves the guess more. ${all4.above} of ${all4.n} people were classified better than chance by this model. Caution: the midline D is the pupil's size, which also reacts to anything that brightens or dims the screen between phases.</p>`;
+  $("clfMath").innerHTML = `
+  <div class="mstep stat"><b>1 · Turn each minute into numbers</b>Every 60-second window of the Working, Stress 1 and Stress 2 phases is fitted with the wave and the vertex parabolas, giving A, B, D and a. Labels: Working = 0 (baseline), Stress = 1. In total ${best.windows.toLocaleString()} windows from ${best.n} people.</div>
+  <div class="mstep stat"><b>2 · Compare each person with themselves</b>For each person, each number becomes a z-score: z = (value − that person's average) ÷ that person's standard deviation, over all their windows. The labels aren't used here, so nothing leaks into the test.</div>
+  <div class="mstep stat"><b>3 · The model</b><span class="eqn">P(stress) = 1 ÷ (1 + e^−(w₀ + w₁·A + w₂·B + w₃·D + w₄·a))</span>Newton's method finds the weights w that make the right labels as likely as possible. There are twice as many stress windows as baseline windows, so each baseline window counts double. That stops the model from simply guessing "stress" every time.</div>
+  <div class="mstep stat"><b>4 · Test on someone new</b>Train on 34 people, then label the 35th person's windows (stress if P &gt; 0.5). Repeat with each person held out once. The model never sees the person it's being graded on.</div>
+  <div class="mstep stat"><b>5 · Score</b><span class="eqn">balanced accuracy = (share of stress windows called stress + share of baseline windows called baseline) ÷ 2</span>Guessing scores 50%. The ${best.n} per-person scores are averaged, and a one-sample t-test checks whether the average beats 50%: for "${all4.name}", t(${all4.n-1}) = ${all4.t.toFixed(2)}, raw p = ${all4.p < 0.001 ? "&lt;0.001" : all4.p.toFixed(3)}. Holm's correction then adjusts for testing four sets of numbers.</div>`;
+  $("conclClf").innerHTML = `<b>Direct test:</b> ${sigBest ? `given only the equation numbers from a 60-second stretch, the computer told stress from baseline correctly ${pct(best.mean)}% of the time (95% CI ${pct(best.lo)}–${pct(best.hi)}%, chance 50%) for people it had never seen, using ${best.name.replace(/ \(.*/, "").toLowerCase()}.${dDriven ? ` Without the midline (pupil size), the wave shape and vertex alone reach ${pct(shape.mean)}%.` : ""}` : `the equation numbers could not tell stress from baseline reliably better than chance (best: ${pct(best.mean)}%).`} See "Can the equations tell stress apart?" below.`;
 }
 // The B test from the cards above, worked through with every intermediate number.
 function renderTMath(all, T){
@@ -1536,7 +1716,8 @@ function renderTMath(all, T){
 }
 function renderConclusion(T, nAll){
   const B = T.B, A = T.A, D = T.diam, Q = T.qa;
-  const up = t => t && t.p < 0.05 && t.m > 0, down = t => t && t.p < 0.05 && t.m < 0;
+  const pa = t => t.pAdj ?? t.p;   // Holm-adjusted across the four tests
+  const up = t => t && pa(t) < 0.05 && t.m > 0, down = t => t && pa(t) < 0.05 && t.m < 0;
   let ans;
   if (up(B) && up(A)) ans = "Supported: under stress the pupil's hippus waves became both taller (A) and faster (B).";
   else if (up(B)) ans = "Partly supported: the waves got faster under stress (B rose), but not significantly taller.";
@@ -1545,7 +1726,7 @@ function renderConclusion(T, nAll){
   else ans = "Not supported: the wave constant B did not shift significantly under stress.";
   if (!up(B) && !up(A) && up(D)) ans += " The stress signal shows up in pupil size instead: the pupil widened.";
   $("conclAnswer").textContent = ans;
-  const fact = (lab, t, u, dec) => `<div class="kfact"><span class="lab">${lab}</span><span class="num">${t ? sgn(t.m,dec)+" "+u : "–"}</span><span class="sub">${t ? `${fmtP(t.p)} · d = ${t.d.toFixed(2)} (${sizeWord(t.d)})` : "not enough data"}</span></div>`;
+  const fact = (lab, t, u, dec) => `<div class="kfact"><span class="lab">${lab}</span><span class="num">${t ? sgn(t.m,dec)+" "+u : "–"}</span><span class="sub">${t ? `Holm ${fmtP(pa(t))} · d = ${t.d.toFixed(2)} (${sizeWord(t.d)})` : "not enough data"}</span></div>`;
   $("conclFacts").innerHTML = fact("Wave constant B", B, "rad/s", 2) + fact("Amplitude A", A, "mm", 3) + fact("Pupil size", D, "mm", 2) + fact("Vertex curvature a", Q, "mm/s²", 2);
   const found = [up(A) && "taller waves (A)", up(B) && "faster waves (B)", up(Q) && "sharper constriction vertices (a)"].filter(Boolean);
   $("conclText").innerHTML = `Based on ${B ? B.n : nAll} participants, comparing the two stress phases with each person's own Working baseline (same screen, same light). ` +
@@ -1736,6 +1917,12 @@ const GLOSS = {
     ["95% confidence interval", "95% CI", "A range that very likely contains the true average change. If the whole range is above zero, the change is reliably positive; if it crosses zero, the direction is uncertain.", "\"+0.15 mm (0.08 to 0.22)\" means the true change is probably somewhere between 0.08 and 0.22 mm."],
     ["Correlation r", "Pearson r", "A number from −1 to +1 for how closely two measurements move together. +1: perfectly together. −1: perfectly opposite. 0: no straight-line link. Used here to compare resilience scores with stress responses.", "Height and shoe size have a strong positive correlation."],
     ["Event-locked average", "time-locked average", "Lining up many recordings at the same moment (time 0, like the start of stress) and averaging them. Random wobbles cancel out and the shared reaction stands out.", "Stacking photos of many sunsets so the common colors show through."],
+    ["Holm correction", "multiple comparisons", "When several tests are run at once, the chance that at least one looks significant by pure luck grows. Holm's method fixes this: sort the p-values from smallest to largest, multiply the smallest by the number of tests, the next by one fewer, and so on, never letting a later one drop below an earlier one.", "With 4 tests, p = 0.02 for the smallest becomes 0.02 × 4 = 0.08: no longer significant."],
+    ["Classification test", "", "Checking whether a computer can sort examples into groups, here baseline or stress, using only some numbers. The score that matters is how well it does on examples it never saw while learning.", "A spam filter is a classifier: it labels emails as spam or not spam."],
+    ["Logistic regression", "", "A simple, standard classifier. It multiplies each input number by a weight, adds them up, and squashes the total into a probability between 0 and 1 with P = 1 ÷ (1 + e^−total). If P is over 0.5, it guesses stress.", ""],
+    ["Leave-one-out testing", "cross-validation", "To test fairly, the computer learns from 34 people and is graded on the one left out, then repeats this so every person is left out once. This shows how well it works on someone new.", "Like studying from 34 past exams and being tested on a 35th you've never seen."],
+    ["Balanced accuracy", "", "The average of two scores: the share of stress examples called stress, and the share of baseline examples called baseline. Guessing scores 50%, even when one group is bigger than the other.", ""],
+    ["Spectrum", "power spectrum", "A breakdown of a signal into how much of each speed (frequency) it contains. B̄ on this site is the spectrum's average speed, weighted by power: a check on B that doesn't depend on picking a single best wave.", "A music equalizer display shows a sound's spectrum: how much bass, middle and treble."],
     ["Stress meter", "exploratory index", "A score made just for this page from 0 to 100. It compares the last 30 seconds with the person's own working baseline using pupil size, amplitude and B. A score near 30 means \"same as Working\". It is a teaching tool, not a medical test.", ""]
   ]
 };
@@ -1989,11 +2176,13 @@ async function scanSlot(s){
     ensureMetrics(() => requestAnimationFrame(() => renderMe({calm: ME.calm.res, stress: ME.stress.res, example: null})));
   } else if (k === "calm" && !wz.stressDone) goStep("ws2");
 }
-// Same measurements as the study: median of 30 s sine fits, mean size, and constriction vertices.
+// Same measurements as the study: median of 60 s wave fits (slowest speed 0.033 Hz), mean size, and
+// constriction vertices. Clips shorter than 60 s get one whole-clip fit; the slowest speed is then raised
+// so at least two full waves fit in the clip.
 function measure(S, i0, i1){
-  const L = WIN*FS, As = [], Bs = [], R2 = [];
-  for (let s=i0; s+L<=i1; s+=50){ const f = fitSine(S, s, s+L); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
-  const whole = fitSine(S, i0, i1);
+  const L = AW.WIN*FS, As = [], Bs = [], R2 = [], secs = (i1 - i0)/FS, fmin = Math.max(AW.FMIN, 2/secs);
+  for (let s=i0; s+L<=i1; s+=50){ const f = fitWave(S, s, s+L); if (f){ As.push(f.A); Bs.push(f.B); R2.push(f.r2); } }
+  const whole = fitWave(S, i0, i1, fmin);
   if (!As.length && whole){ As.push(whole.A); Bs.push(whole.B); R2.push(whole.r2); }
   let d = 0, c = 0; for (let i=i0;i<i1;i++) if (S.valid[i]) { d += S.x[i]; c++; }
   const tr = troughs(S, i0, i1);
@@ -2044,7 +2233,7 @@ function renderMeMath(c, s, you, pop, example){
   const vals = pop.map(p => p.diam).filter(isFinite), below = vals.filter(x => x < you.diam).length;
   el.innerHTML = `
   <div class="mstep stat"><b>1 · Pixels to millimeters (the iris ruler)</b>${example ? "The study's eye tracker measured millimeters directly, so this step isn't needed for the example. For your videos, the iris (about 11.7 mm across in almost every adult) is the ruler:<span class='eqn'>pupil size (mm) = pupil width (px) ÷ iris width (px) × 11.7 mm</span>" : `The iris is about 11.7 mm across in almost every adult, so it converts pixels to millimeters. Average pupil size in each video:<span class="eqn">Calm: ${ruler(c)}</span><span class="eqn">Stressed: ${ruler(s)}</span>`}</div>
-  <div class="mstep"><b>2 · Fit y = A·sin(B(t − C)) + D to each recording</b>Same method as the study: remove the slow drift, try every speed from 0.10 to 1.00 waves per second, keep the best, then solve for the height (the median of 30-second windows is reported above).<span class="eqn">${wave("Calm", c)}</span><span class="eqn">${wave("Stressed", s)}</span></div>
+  <div class="mstep"><b>2 · Fit y = A·sin(B(t − C)) + D to each recording</b>Same method as the study: remove the straight-line drift, try every speed from 0.033 to 1.00 waves per second (at least two full waves must fit in the recording), keep the best, then solve for the height. The whole-recording fit is shown here; the numbers above use the median of 60-second windows when the recording is long enough.<span class="eqn">${wave("Calm", c)}</span><span class="eqn">${wave("Stressed", s)}</span></div>
   <div class="mstep"><b>3 · How much each number changed</b><span class="eqn">${chg("Pupil size", c.diam, s.diam, "mm", 2)}</span><span class="eqn">${chg("Amplitude A", c.A, s.A, "mm", 3)}</span><span class="eqn">${chg("Wave constant B", c.B, s.B, "rad/s", 2)}</span></div>
   <div class="mstep stat"><b>4 · Ranking against the study</b>Each study participant also has a change, from Working baseline to Stress. Count how many are smaller than ${example ? "this one" : "yours"}:<span class="eqn">${below} of ${vals.length} participants changed less → ${below} ÷ ${vals.length} × 100 = <i>${vals.length ? Math.round(below/vals.length*100) : 0}%</i></span></div>`;
 }
@@ -2052,16 +2241,18 @@ function drawMeWave(cv, r, col){
   sizeCanvas(cv);
   const g = cv.getContext("2d"), dpr = devicePixelRatio||1, W = cv.width/dpr, H = cv.height/dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
   const {S, range: [i0, i1], fit} = r, padL = 44, padR = 8, padT = 8, padB = 22, pw = W-padL-padR, ph = H-padT-padB;
-  let m = 0.05; for (let i=i0;i<i1;i++) if (S.valid[i]) m = Math.max(m, Math.abs(S.hp[i]));
+  // plot the same signal the wave was fitted to: smoothed pupil minus the fit's straight-line trend
+  const wob = fit && isFinite(fit.alpha) ? i => S.sm[i] - (fit.alpha + fit.beta*(i/FS - fit.t0)) : i => S.hp[i];
+  let m = 0.05; for (let i=i0;i<i1;i++) if (S.valid[i]) m = Math.max(m, Math.abs(wob(i)));
   m *= 1.15; const X = i => padL + (i-i0)/(i1-i0)*pw, Y = v => padT + (1 - (v+m)/(2*m))*ph;
   g.font = "11px 'IBM Plex Mono', monospace"; g.fillStyle = C.muted; g.textAlign = "right"; g.textBaseline = "middle";
   for (const v of [-m*0.8, 0, m*0.8]){ g.strokeStyle = C.grid; g.beginPath(); g.moveTo(padL,Y(v)); g.lineTo(W-padR,Y(v)); g.stroke(); g.fillText((v>0?"+":"")+v.toFixed(2), padL-6, Y(v)); }
   g.textAlign = "center"; g.textBaseline = "top"; const secs = (i1-i0)/FS;
   for (let t=0; t<=secs; t+=Math.max(10, Math.round(secs/6/10)*10)) g.fillText(t+" s", X(i0+t*FS), H-padB+5);
   g.strokeStyle = col; g.lineWidth = 1.8; g.beginPath(); let pen = false;
-  for (let i=i0;i<i1;i++){ if (!S.valid[i]) { pen = false; continue; } pen ? g.lineTo(X(i), Y(S.hp[i])) : (g.moveTo(X(i), Y(S.hp[i])), pen = true); }
+  for (let i=i0;i<i1;i++){ if (!S.valid[i]) { pen = false; continue; } pen ? g.lineTo(X(i), Y(wob(i))) : (g.moveTo(X(i), Y(wob(i))), pen = true); }
   g.stroke();
-  if (fit){ g.strokeStyle = C.wave; g.lineWidth = 2; g.beginPath(); for (let i=i0;i<i1;i+=2){ const y = Y(fit.m + fit.A*Math.sin(fit.B*(i/FS - fit.C))); i===i0 ? g.moveTo(X(i),y) : g.lineTo(X(i),y); } g.stroke(); }
+  if (fit){ g.strokeStyle = C.wave; g.lineWidth = 2; g.beginPath(); for (let i=i0;i<i1;i+=2){ const y = Y((fit.m || 0) + fit.A*Math.sin(fit.B*(i/FS - fit.C))); i===i0 ? g.moveTo(X(i),y) : g.lineTo(X(i),y); } g.stroke(); }
 }
 function drawStrips(pop, you, youLabel){
   const cv = $("meStrips"); sizeCanvas(cv);
