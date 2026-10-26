@@ -240,8 +240,8 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
 .wstep.done.open .wstate::after{content:" · click to close"}
 .wstep .meslot{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;max-width:620px}
 .livebox{background:var(--surface-2);border:1px dashed var(--accent);border-radius:12px;padding:12px;display:grid;gap:10px;max-width:620px}
-#livePrev{width:100%;max-width:420px;border-radius:10px;transform:scaleX(-1);background:#000}
-.tk-cam{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(200px,35vw);border-radius:10px;border:2px solid var(--accent);transform:scaleX(-1);z-index:72;background:#000}
+#zoomCv{width:100%;max-width:420px;aspect-ratio:4/3;border-radius:10px;background:#000}
+.tk-cam{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(200px,35vw);border-radius:10px;border:2px solid var(--accent);z-index:72;background:#000}
 .linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
 /* stress task overlay: identical layout in both phases keeps screen brightness matched */
 #task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
@@ -573,9 +573,10 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
           </ul></div>
         </div>
         <div class="livebox" id="liveBox" hidden>
-          <p><b>One-device option:</b> record with this device's own camera instead of a phone. With the camera on, the page films your eye automatically during the calm screen and the stress task. Sit about 25–30 cm from the camera with light on your face. It is less precise than a phone held close to your eye.</p>
+          <p><b>One-device option:</b> record with this device's own camera instead of a phone. The page finds your eye, zooms in on it, and films only that eye automatically during the calm screen and the stress task. Nothing else in the room is recorded. Sit about 25–30 cm from the camera with light on your face. It is less precise than a phone held close to your eye.</p>
           <div class="rowtools"><button class="btn" id="liveOn">Use this device's camera</button><span class="hint" id="liveMsg" role="status"></span></div>
-          <video id="livePrev" muted playsinline hidden></video>
+          <canvas id="zoomCv" hidden aria-label="Zoomed camera view of your eye"></canvas>
+          <span class="hint" id="zoomState" role="status"></span>
         </div>
         <div class="rowtools"><button class="btn primary" id="tkStartCalm">Start calm screen (60 s)</button><span class="hint" id="calmMsg"></span></div>
         <div class="meslot">
@@ -1706,7 +1707,8 @@ function setupSlot(s){
   $("meGo-"+k).onclick = () => scanSlot(s);
   drawSlot(s);
 }
-function loadVideo(s, file){
+// auto: {cx, cy, r} as fractions of the frame, from the camera eye-finder; skips the manual click-and-size step.
+function loadVideo(s, file, auto){
   const v = s.video, k = s.key;
   if (s.url) URL.revokeObjectURL(s.url);
   s.url = URL.createObjectURL(file); s.ready = s.placed = false; s.res = null; s.pupilR = null;
@@ -1718,7 +1720,16 @@ function loadVideo(s, file){
     if (!isFinite(v.duration)) await seekTo(v, 1e6);   // some recorders omit the length; seeking past the end reveals it
     await seekTo(v, Math.min(1, (isFinite(v.duration) ? v.duration : 2)/2));
     s.ready = true; s.cx = v.videoWidth/2; s.cy = v.videoHeight/2;
-    const sl = $("meIris-"+k); sl.disabled = false; sl.dispatchEvent(new Event("input"));
+    const sl = $("meIris-"+k); sl.disabled = false;
+    if (auto){
+      const half = Math.min(v.videoWidth, v.videoHeight)/2;
+      s.cx = auto.cx*v.videoWidth; s.cy = auto.cy*v.videoHeight;
+      sl.value = Math.max(+sl.min, Math.min(+sl.max, auto.r*v.videoWidth/half*100));
+      sl.dispatchEvent(new Event("input")); s.placed = true; $("meGo-"+k).disabled = false; drawSlot(s);
+      setStat(s, "Your eye was found and zoomed in automatically. Check that the dashed circle sits on the iris edge, then press Scan this video.", "ok");
+      return;
+    }
+    sl.dispatchEvent(new Event("input"));
     const short = isFinite(v.duration) && v.duration < 20;
     setStat(s, short ? "This video is shorter than 20 s; 30–60 s gives a much better wave fit. Click the center of the pupil to continue." : "Click the center of the pupil in the picture.", short ? "bad" : "");
   };
@@ -1914,12 +1925,18 @@ function drawStrips(pop, you, youLabel){
 /* ---------- one-device camera mode ---------- */
 // Only works where the host allows the camera (e.g. GitHub Pages). On claude.ai the request is refused and the
 // page keeps the phone + upload method. Recordings never leave the browser: they go straight into the scan step.
-const live = {stream: null, rec: null, chunks: []};
+// Auto-zoom: a face-landmark model finds the iris in each camera frame, and the page crops a 4:3 window around
+// that one eye (8 iris-radii wide) into a canvas. Only that zoomed eye is previewed and recorded, so the room
+// around the person is never saved, and the scan step can place the pupil marker by itself.
+const ZOOM = {W: 640, H: 480, IRIS_FRAC: 1/8};    // iris radius = 1/8 of the zoom width (80 px)
+const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const live = {stream: null, rec: null, chunks: [], raw: null, cv: null, out: null, finder: null, found: false, eye: null, sm: null, lastSeen: 0, loop: 0};
 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) $("liveBox").hidden = false;
 $("liveOn").onclick = async () => {
   if (live.stream) return stopLive();
   $("liveMsg").textContent = "Asking for camera permission…";
-  try { live.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "user", width: {ideal: 1920}, height: {ideal: 1080}}, audio: false}); }
+  try { live.stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "user", width: {ideal: 3840}, height: {ideal: 2160}}, audio: false}); }
   catch (e) {
     live.stream = null;
     $("liveMsg").textContent = e && e.name === "NotAllowedError"
@@ -1927,22 +1944,84 @@ $("liveOn").onclick = async () => {
       : "No camera was found on this device. Use the phone method instead.";
     return;
   }
-  for (const id of ["livePrev", "tkCam"]){ const v = $(id); v.srcObject = live.stream; v.play().catch(() => {}); }
-  $("livePrev").hidden = false; $("liveOn").textContent = "Turn camera off";
+  live.raw = document.createElement("video"); live.raw.muted = true; live.raw.playsInline = true; live.raw.srcObject = live.stream;
+  await live.raw.play().catch(() => {});
+  live.cv = $("zoomCv"); live.cv.width = ZOOM.W; live.cv.height = ZOOM.H; live.cv.hidden = false;
+  live.out = live.cv.captureStream(30);
+  const tc = $("tkCam"); tc.srcObject = live.out; tc.play().catch(() => {});
+  $("liveOn").textContent = "Turn camera off";
   const st = live.stream.getVideoTracks()[0].getSettings();
-  $("liveMsg").textContent = `Camera on (${st.width || "?"}×${st.height || "?"}). Move closer until your eye is clearly visible. Recording starts automatically with each task.`;
+  $("liveMsg").textContent = `Camera on (${st.width || "?"}×${st.height || "?"}). Loading the eye finder…`;
+  live.loop = requestAnimationFrame(zoomLoop);
+  try {
+    const vision = await import(MP + "/vision_bundle.mjs");
+    const files = await vision.FilesetResolver.forVisionTasks(MP + "/wasm");
+    live.finder = await vision.FaceLandmarker.createFromOptions(files, {baseOptions: {modelAssetPath: MODEL, delegate: "GPU"}, runningMode: "VIDEO", numFaces: 1});
+    if (live.stream) $("liveMsg").textContent = "Eye finder ready. Face the camera about 25–30 cm away; the box shows only your eye once it's found.";
+  } catch {
+    live.finder = null;
+    if (live.stream) $("liveMsg").textContent = "The eye finder couldn't load, so the whole camera view is shown. Move close until your eye fills much of the picture; you'll mark the pupil yourself after recording.";
+  }
 };
+// Iris landmarks from the model: centers 468 and 473, each with four edge points after it.
+function irisFrom(lm, c, W, H){
+  const cx = lm[c].x*W, cy = lm[c].y*H;
+  let r = 0; for (let i=1;i<=4;i++) r += Math.hypot(lm[c+i].x*W - cx, lm[c+i].y*H - cy);
+  return {cx, cy, r: r/4};
+}
+function zoomLoop(now){
+  if (!live.stream) return;
+  const v = live.raw, W = v.videoWidth, H = v.videoHeight, g = live.cv.getContext("2d");
+  if (W && H){
+    if (live.finder && v.readyState >= 2){
+      let res = null; try { res = live.finder.detectForVideo(v, now); } catch {}
+      const lm = res && res.faceLandmarks && res.faceLandmarks[0];
+      if (lm && lm.length >= 478){
+        const a = irisFrom(lm, 468, W, H), b = irisFrom(lm, 473, W, H);
+        // keep following the same eye unless the other one becomes clearly larger (closer to the camera)
+        if (!live.eye) live.eye = a.r >= b.r ? "a" : "b";
+        else if (live.eye === "a" && b.r > a.r*1.3) live.eye = "b"; else if (live.eye === "b" && a.r > b.r*1.3) live.eye = "a";
+        const t = live.eye === "a" ? a : b;
+        live.sm = live.sm ? {cx: live.sm.cx + (t.cx - live.sm.cx)*0.35, cy: live.sm.cy + (t.cy - live.sm.cy)*0.35, r: live.sm.r + (t.r - live.sm.r)*0.15} : t;
+        live.lastSeen = now;
+      }
+    }
+    live.found = !!live.sm && now - live.lastSeen < 700;
+    g.fillStyle = "#000"; g.fillRect(0, 0, ZOOM.W, ZOOM.H);
+    g.save(); g.translate(ZOOM.W, 0); g.scale(-1, 1);   // selfie-style mirror; the pupil math doesn't care about left vs right
+    if (live.sm){
+      const cw = live.sm.r/ZOOM.IRIS_FRAC, ch = cw*ZOOM.H/ZOOM.W;
+      g.drawImage(v, live.sm.cx - cw/2, live.sm.cy - ch/2, cw, ch, 0, 0, ZOOM.W, ZOOM.H);
+      if (!live.found){ g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(0, 0, ZOOM.W, ZOOM.H); }
+    } else {
+      const k = Math.max(ZOOM.W/W, ZOOM.H/H); g.drawImage(v, (ZOOM.W - W*k)/2, (ZOOM.H - H*k)/2, W*k, H*k);
+    }
+    g.restore();
+    const msg = !live.finder ? "" : live.found ? "" : live.sm ? "Eye lost: face the camera" : "Looking for your eye…";
+    if (msg){ g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(0, ZOOM.H - 44, ZOOM.W, 44); g.fillStyle = "#fff"; g.font = "600 20px Figtree, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(msg, ZOOM.W/2, ZOOM.H - 22); }
+    const pill = $("zoomState");
+    if (pill){
+      const px = live.sm ? Math.round(live.sm.r*2) : 0, small = live.found && px < 40;
+      pill.textContent = !live.finder ? "Whole camera view" : !live.found ? "Looking for your eye…" : small ? `Eye found, but small (iris ${px} px wide): move closer for a sharper picture` : `Eye found · iris ${px} px wide in the camera image`;
+      pill.style.color = !live.found ? "var(--muted)" : small ? "var(--warn)" : "var(--ok)";
+    }
+  }
+  live.loop = requestAnimationFrame(zoomLoop);
+}
 function stopLive(){
   if (live.rec) { try { live.rec.stop(); } catch {} live.rec = null; }
+  cancelAnimationFrame(live.loop);
   if (live.stream) live.stream.getTracks().forEach(t => t.stop());
-  live.stream = null; $("livePrev").hidden = true; $("tkCam").hidden = true;
+  if (live.out) live.out.getTracks().forEach(t => t.stop());
+  live.stream = live.out = null; live.sm = live.eye = null; live.found = false;
+  $("zoomCv").hidden = true; $("tkCam").hidden = true; $("zoomState").textContent = "";
   $("liveOn").textContent = "Use this device's camera"; $("liveMsg").textContent = "Camera off.";
 }
 function liveStart(){
   if (!live.stream) return;
   const mt = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"].find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
-  live.chunks = [];
-  try { live.rec = new MediaRecorder(live.stream, mt ? {mimeType: mt, videoBitsPerSecond: 8e6} : {}); } catch { live.rec = null; return; }
+  live.chunks = []; live.zoomed = !!live.finder;
+  try { live.rec = new MediaRecorder(live.out || live.stream, mt ? {mimeType: mt, videoBitsPerSecond: 6e6} : {}); } catch { live.rec = null; return; }
   live.rec.ondataavailable = e => { if (e.data && e.data.size) live.chunks.push(e.data); };
   live.rec.start(1000);
 }
@@ -1951,8 +2030,10 @@ function liveStop(kind, keep){
   rec.onstop = () => {
     if (!keep || !live.chunks.length) return;
     const type = rec.mimeType || "video/webm", f = new File(live.chunks, `${kind}-camera.${type.includes("mp4") ? "mp4" : "webm"}`, {type});
-    const s = ME[kind]; loadVideo(s, f);
-    setTimeout(() => setStat(s, "Recorded with this device's camera. Click the center of your pupil in the picture."), 1500);
+    const s = ME[kind];
+    // In a zoomed recording the eye is centered and the iris radius is a fixed share of the width.
+    if (live.zoomed) loadVideo(s, f, {cx: 0.5, cy: 0.5, r: ZOOM.IRIS_FRAC});
+    else { loadVideo(s, f); setTimeout(() => setStat(s, "Recorded with this device's camera. Click the center of your pupil in the picture."), 1500); }
   };
   try { rec.stop(); } catch {}
 }
