@@ -242,6 +242,7 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
 .livebox{background:var(--surface-2);border:1px dashed var(--accent);border-radius:12px;padding:12px;display:grid;gap:10px;max-width:620px}
 #zoomCv{width:100%;max-width:420px;aspect-ratio:4/3;border-radius:10px;background:#000}
 .tk-cam{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(200px,35vw);border-radius:10px;border:2px solid var(--accent);z-index:72;background:#000}
+.privacy{margin:0;font-size:13.5px;background:color-mix(in srgb,var(--ok) 10%,var(--surface-2));border:1px solid color-mix(in srgb,var(--ok) 40%,var(--line));border-radius:10px;padding:10px 12px;max-width:80ch}
 .linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
 /* stress task overlay: identical layout in both phases keeps screen brightness matched */
 #task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
@@ -552,7 +553,8 @@ kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border
   <section class="card">
     <h2>Measure your own eye</h2>
     <p>Repeat the study on yourself in four steps, about 10 minutes in all. You record your eye twice, once calm and once during a short version of the study's stress task. The page then measures your pupil's wave in both videos and compares the change with the study's participants.</p>
-    <p class="hint">You need this page on a laptop or tablet, a phone to film your eye, and sound turned on. Videos are analyzed inside your browser and never uploaded anywhere. This is an educational experiment, not a medical test.</p>
+    <p class="hint">You need this page on a laptop or tablet, a phone to film your eye, and sound turned on. This is an educational experiment, not a medical test.</p>
+    <p class="privacy"><b>Your privacy:</b> nothing you record or measure here is saved or sent anywhere. Videos and results stay inside this browser tab and are erased when you close or reload the page. This project does not collect any data from visitors.</p>
   </section>
 
   <ol class="wizard">

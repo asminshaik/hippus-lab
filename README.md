@@ -19,7 +19,7 @@ Can non-linear algebraic modeling, specifically sinusoidal wave equations and qu
 - **My eye:** repeat the experiment on yourself with a mini version of the study's NASA MATB-II stress task, using a phone or this device's camera. Videos are analyzed in the browser and never uploaded.
 - **Data & method** and a plain-language **Glossary**
 
-Everything runs in the browser. There is no server and no tracking.
+Everything runs in the browser. There is no server and no tracking, and the project collects no data from visitors: videos and measurements made in **My eye** never leave the browser tab and are erased when it closes. In camera mode, only a zoomed view of one eye is recorded, and only into the page's memory.
 
 ## Data
 
