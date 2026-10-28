@@ -261,6 +261,33 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
 .clfbar .chance{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--warn)}
 .clfrow .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
 .clfverdict{font-family:var(--f-display);font-size:20px;line-height:1.3;margin:10px 0 6px;text-wrap:balance}
+/* step 2: simple job cards with mini pictures */
+.wbody .lead{font-size:15.5px;max-width:75ch}
+.jobs{display:grid;gap:12px}
+.job{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px}
+@media (max-width:560px){.job{grid-template-columns:minmax(0,1fr)}}
+.job ol{margin:6px 0 4px;padding-left:20px;display:grid;gap:4px;font-size:14.5px}
+.job .jobt{font-size:16px}
+.jobpic{display:grid;justify-items:center;gap:8px}
+.mtank{position:relative;width:54px;height:92px;border:2px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.mtank .mband{position:absolute;left:0;right:0;bottom:50%;height:25%;background:color-mix(in srgb,var(--ok) 25%,transparent);border-block:1px dashed var(--ok)}
+.mtank .mfill{position:absolute;left:0;right:0;bottom:0;height:62%;background:color-mix(in srgb,var(--accent) 55%,transparent)}
+.mtank span{position:absolute;top:3px;left:6px;font-weight:700;font-size:12px}
+.mpumps{display:flex;gap:5px}
+.mpumps span{width:28px;height:26px;display:grid;place-items:center;border-radius:6px;border:2px solid var(--line);font-weight:700;font-size:13px}
+.mpumps .on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 20%,transparent)}
+.mpumps .broke{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 20%,transparent)}
+.mradio{display:grid;gap:6px;justify-items:center;text-align:center;font-size:12px}
+.mradio .mmsg{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--f-mono)}
+.mradio .mnum{font-family:var(--f-mono);font-size:13px}
+.mradio .mnum b{color:var(--ok)}
+.mradio .mbtns{display:flex;gap:4px}
+.mradio .mbtns i{font-style:normal;border:1px solid var(--line);border-radius:5px;padding:1px 7px;font-weight:700}
+.mradio .mbtns i.ok{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.practicebox{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border:1px dashed var(--accent);border-radius:12px;padding:12px 14px}
+.readybox{display:grid;gap:8px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-2));border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:12px;padding:14px}
+.readybox ol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14.5px}
+.readybox .btn.primary{justify-self:start;padding:9px 18px;font-size:15px}
 .linkbtn{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start;font-size:13px}
 /* stress task overlay: identical layout in both phases keeps screen brightness matched */
 #task{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
@@ -637,27 +664,55 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
 
     <!-- STEP 2 -->
     <li class="wstep" id="ws2">
-      <div class="whead"><span class="wnum">2</span><div><h3>Read the stress task directions</h3><span class="wstate" id="ws2State">Unlocks after step 1</span></div></div>
+      <div class="whead"><span class="wnum">2</span><div><h3>Do the stress task</h3><span class="wstate" id="ws2State">Unlocks after step 1</span></div></div>
       <div class="wbody">
-        <p>Next you'll do a short version of <span class="term" data-g="MATB-II">MATB-II</span>, the NASA flight task the researchers used to stress people. Read everything below first. The task starts only when you press the button at the bottom, and your phone should be recording the whole time.</p>
-        <div class="howto">
-          <div><b>Job 1: keep the fuel tanks full</b><ul>
-            <li>You'll see two fuel tanks, <b>A</b> and <b>B</b>. Keep both inside the <b style="color:var(--ok)">green band</b>. A tank turns red when it's outside.</li>
-            <li>Four pumps add fuel: pumps <b>1</b> and <b>2</b> fill tank A, pumps <b>3</b> and <b>4</b> fill tank B. Click a pump (or press its number key) to turn it on or off.</li>
-            <li>Pumps will break without warning and turn red for a few seconds. Use the other pump while one is broken.</li>
-          </ul></div>
-          <div><b>Job 2: answer the radio</b><ul>
-            <li>Your call sign is <b>HIPPUS-7</b>. Calls are spoken out loud and shown for 4 seconds, for example: <i>"HIPPUS-7, contact center on 124.475."</i></li>
-            <li>When a call is for you, change the big frequency number to match using the <b>−1 −.025 +.025 +1</b> buttons (or arrow keys), then press <b>Confirm</b> (or Enter). You have 12 seconds.</li>
-            <li>Ignore calls for other aircraft, even ones that sound similar, like HIPPO-17.</li>
-          </ul></div>
+        <p class="lead">You'll play a short flight game, a mini version of the <span class="term" data-g="MATB-II">NASA task</span> the researchers used. You have <b>two jobs</b>. It's meant to feel rushed, so just do your best: your score doesn't affect your eye measurement.</p>
+        <div class="jobs">
+          <div class="job">
+            <div class="jobpic" aria-hidden="true">
+              <div class="mtank"><div class="mband"></div><div class="mfill"></div><span>A</span></div>
+              <div class="mpumps"><span class="on">1</span><span class="off">2</span><span class="broke">3</span></div>
+            </div>
+            <div><b class="jobt">Job 1 · Keep the fuel in the green zone</b>
+              <ol>
+                <li>Click a pump to turn it <b>on</b> (green) or <b>off</b>.</li>
+                <li>Fuel too low? Turn a pump <b>on</b>. Too high? Turn one <b>off</b>.</li>
+                <li>A <b style="color:var(--bad)">red</b> pump is broken for a few seconds. Use another one.</li>
+              </ol>
+              <p class="hint">Pumps 1 and 2 fill tank A. Pumps 3 and 4 fill tank B.</p>
+            </div>
+          </div>
+          <div class="job">
+            <div class="jobpic" aria-hidden="true">
+              <div class="mradio"><span class="mmsg">🔊 "HIPPUS-7 … 124.475"</span><span class="mnum">121.500 → <b>124.475</b></span><span class="mbtns"><i>−</i><i>+</i><i class="ok">Confirm</i></span></div>
+            </div>
+            <div><b class="jobt">Job 2 · When you hear "HIPPUS-7", match the number</b>
+              <ol>
+                <li><b>HIPPUS-7</b> is you. The radio says it out loud.</li>
+                <li>Press <b>+</b> and <b>−</b> until the big number matches the one you heard.</li>
+                <li>Press <b>Confirm</b>. You have 12 seconds.</li>
+              </ol>
+              <p class="hint">Other names (like HIPPO-17) aren't for you, so ignore them.</p>
+            </div>
+          </div>
         </div>
-        <p>It's meant to feel rushed. Doing your best is all that matters, and the score doesn't affect your eye measurement.</p>
-        <div class="rowtools">
-          <label class="check"><input type="checkbox" id="tkReadOk"> I've read the directions and my phone is ready to record</label>
-          <label class="who" for="tkDur" style="font-weight:500">Length <select id="tkDur"><option value="60">60 s</option><option value="90" selected>90 s</option><option value="120">120 s</option></select></label>
+        <div class="practicebox">
+          <div><b>Not sure? Practice first.</b><br><span class="hint">A 20-second try-out. Nothing is recorded or scored.</span></div>
+          <button class="btn" id="tkPractice">Try a practice round</button>
         </div>
-        <div class="rowtools"><button class="btn primary" id="tkStartStress" disabled>Start the stress task</button><span class="hint">A 5-second countdown comes first: start recording your eye then.</span></div>
+        <div class="readybox">
+          <b>When you're ready:</b>
+          <ol>
+            <li>Get your phone ready to record your eye (or use this device's camera from step 1).</li>
+            <li>Press <b>Start</b>. During the 5-second countdown, <b>start recording</b>.</li>
+            <li>Play until the timer ends. Then stop recording.</li>
+          </ol>
+          <div class="rowtools">
+            <label class="check"><input type="checkbox" id="tkReadOk"> My camera is ready</label>
+            <label class="who" for="tkDur" style="font-weight:500">Length <select id="tkDur"><option value="60">60 s</option><option value="90" selected>90 s</option><option value="120">120 s</option></select></label>
+          </div>
+          <button class="btn primary" id="tkStartStress" disabled>Start the stress task</button>
+        </div>
         <button class="linkbtn" id="tkSkip">I already recorded a stressed video</button>
       </div>
       <p class="wlock">Finish step 1 first.</p>
@@ -747,7 +802,7 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <h2 id="tkEndTitle">Task complete</h2>
     <p id="tkEndRec">Stop your phone recording now.</p>
     <p id="tkEndStats" class="hint" style="font-size:14px"></p>
-    <p><b>How stressed did you feel?</b> 1 = completely calm, 10 = extremely stressed</p>
+    <p id="tkRateQ"><b>How stressed did you feel?</b> 1 = completely calm, 10 = extremely stressed</p>
     <div class="chips" id="tkRate"></div>
     <button class="btn primary" id="tkClose">Done</button>
   </div></div>
@@ -1970,7 +2025,7 @@ function setStep(id, state, text){
 function updateWizard(){
   const s1 = !!ME.calm.res, s2 = wz.stressDone, s3 = !!ME.stress.res;
   setStep("ws1", s1 ? "done" : "active", s1 ? "Done: calm video scanned" : "Start here");
-  setStep("ws2", !s1 ? "locked" : s2 ? "done" : "active", !s1 ? "Unlocks after step 1" : s2 ? "Done: stress task finished" : "Read this, then start the task");
+  setStep("ws2", !s1 ? "locked" : s2 ? "done" : "active", !s1 ? "Unlocks after step 1" : s2 ? "Done: stress task finished" : "Read the two jobs, practice if you like, then start");
   setStep("ws3", !s2 ? "locked" : s3 ? "done" : "active", !s2 ? "Unlocks after step 2" : s3 ? "Done: stressed video scanned" : "Upload the video from the stress task");
   setStep("ws4", !(s1 && s3) ? "locked" : "done", !(s1 && s3) ? "Appears after both videos are scanned" : "Ready");
   $("tkStartStress").disabled = !$("tkReadOk").checked;
@@ -2415,24 +2470,24 @@ const freqStr = f => f.toFixed(3);
 const randFreq = () => 118 + Math.round(Math.random()*18*40)/40;
 // kind "calm": same screen on autopilot with a breathing cue (step 1). kind "stress": the full task (step 2).
 function startTask(kind){
-  const dur = kind === "calm" ? 60 : +$("tkDur").value;
+  const dur = kind === "calm" ? 60 : kind === "practice" ? 20 : +$("tkDur").value;
   tk = {kind, dur, t: 0, A: 2500, B: 2500, pumps: [true, false, true, false], failUntil: [0,0,0,0], dev: 0, devN: 0, inBand: 0,
         // one pump (32/s) against the drain: baseline creeps up 8/s, stress sinks 12/s, so stress needs constant switching
         drain: kind === "stress" ? 44 : 24, freq: 121.5, radio: null, nextCall: 7, nextFail: 10, firstCall: true, hits: 0, misses: 0, falseAlarms: 0, calls: 0, lastTick: -1, running: false};
   $("task").hidden = false; $("tkEnd").hidden = true;
   const st = $("tkPhase"); st.style.color = kind === "stress" ? "var(--stress)" : "var(--work)";
-  st.innerHTML = `<i></i><span style="color:var(--ink)">${kind === "stress" ? "Stress task" : "Calm screen: just watch"}</span>`;
+  st.innerHTML = `<i></i><span style="color:var(--ink)">${kind === "stress" ? "Stress task" : kind === "practice" ? "Practice round: not recorded" : "Calm screen: just watch"}</span>`;
   $("tkMsg").textContent = kind === "stress" ? "Listening…" : "Autopilot is on. Nothing to do: watch the screen and breathe slowly.";
   $("tkFreq").textContent = freqStr(tk.freq); $("tkRadioStat").textContent = ""; $("tkScore").textContent = "";
   renderTask();
   try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch {}
   tone(1, 0.01, "sine", 0.0001);   // unlock audio inside the click
   let n = 5; $("tkCount").hidden = false; $("tkCountNum").textContent = n;
-  $("tkCountMsg").textContent = live.stream ? "Get close to the camera: recording starts automatically" : "Start recording your eye on your phone now";
-  $("tkCam").hidden = !live.stream;
+  $("tkCountMsg").textContent = kind === "practice" ? "Practice round: no need to record" : live.stream ? "Get close to the camera: recording starts automatically" : "Start recording your eye on your phone now";
+  $("tkCam").hidden = !live.stream || kind === "practice";
   const iv = setInterval(() => {
     n--; if (n > 0){ $("tkCountNum").textContent = n; tone(660, 0.12); return; }
-    clearInterval(iv); $("tkCount").hidden = true; tone(990, 0.25); liveStart();
+    clearInterval(iv); $("tkCount").hidden = true; tone(990, 0.25); if (kind !== "practice") liveStart();
     tk.running = true; tk.prev = performance.now(); requestAnimationFrame(taskLoop);
   }, 1000);
   tk.countIv = iv;
@@ -2440,7 +2495,7 @@ function startTask(kind){
 function taskLoop(now){
   if (!tk || !tk.running) return;
   const dt = Math.min(0.1, (now - tk.prev)/1000); tk.prev = now; tk.t += dt;
-  const t = tk.t, stress = tk.kind === "stress";
+  const t = tk.t, stress = tk.kind === "stress" || tk.kind === "practice";
   // pump failures: two random pumps fail for 7 s, every 10 s (stress only)
   if (stress && t >= tk.nextFail){
     tk.nextFail += 10; const idx = [0,1,2,3].sort(() => Math.random() - 0.5).slice(0, 2);
@@ -2488,7 +2543,7 @@ function renderTask(){
   }
   document.querySelectorAll("#task .pump").forEach((b, i) => { const failed = tk.failUntil[i] > tk.t; b.classList.toggle("fail", failed); b.classList.toggle("on", tk.pumps[i] && !failed); b.setAttribute("aria-pressed", tk.pumps[i]); });
   const left = Math.max(0, tk.dur - tk.t); $("tkTime").textContent = fmtT(Math.ceil(left));
-  $("tkScore").textContent = tk.devN ? `in band ${Math.round(tk.inBand/tk.devN*100)}%` + (tk.kind === "stress" ? ` · radio ${tk.hits}/${tk.calls}` : "") : "";
+  $("tkScore").textContent = tk.devN ? `in band ${Math.round(tk.inBand/tk.devN*100)}%` + (tk.kind !== "calm" ? ` · radio ${tk.hits}/${tk.calls}` : "") : "";
 }
 function finishTask(aborted){
   if (!tk) return;
@@ -2497,9 +2552,12 @@ function finishTask(aborted){
   tone(990, 0.2); setTimeout(() => tone(1320, 0.3), 220);
   const k = tk.kind, cam = !!live.rec;
   liveStop(k, true);
-  $("tkEndRec").textContent = cam ? "Your camera recording is saved and loaded into the next step." : "Stop your phone recording now.";
-  $("tkEndTitle").textContent = k === "stress" ? "Stress task complete" : "Calm recording complete";
-  $("tkEndStats").textContent = k === "stress" ? `Tanks in the green band ${Math.round(tk.inBand/tk.devN*100)}% of the time · radio calls answered ${tk.hits} of ${tk.calls} · wrong tunes or replies to other aircraft: ${tk.falseAlarms}` : "Next: upload this video in step 1 and scan it.";
+  const practice = k === "practice";
+  $("tkEndRec").textContent = practice ? "That's all there is to it. Nothing was recorded." : cam ? "Your camera recording is saved and loaded into the next step." : "Stop your phone recording now.";
+  $("tkEndTitle").textContent = k === "stress" ? "Stress task complete" : practice ? "Practice done" : "Calm recording complete";
+  $("tkEndStats").textContent = k === "calm" ? "Next: upload this video in step 1 and scan it." : `Tanks in the green zone ${Math.round(tk.inBand/tk.devN*100)}% of the time · radio calls answered ${tk.hits} of ${tk.calls} · wrong numbers or answers to other names: ${tk.falseAlarms}` + (practice ? ". When you're ready, start the real task and record your eye." : "");
+  $("tkRateQ").hidden = $("tkRate").hidden = practice;
+  $("tkClose").textContent = practice ? "Back to the directions" : "Done";
   const box = $("tkRate"); box.innerHTML = "";
   for (let i=1;i<=10;i++){ const b = document.createElement("button"); b.className = "chip"; b.textContent = i; b.onclick = () => { ratings[k] = i; for (const x of box.children) x.setAttribute("aria-current", x === b); }; box.appendChild(b); }
   $("tkEnd").hidden = false; renderTask();
@@ -2518,7 +2576,7 @@ function closeTask(){
   tk = null; if (meLast && !meLast.example) renderMe(meLast);
 }
 function tryConfirm(){
-  if (!tk || !tk.running || tk.kind !== "stress") return;
+  if (!tk || !tk.running || tk.kind === "calm") return;
   const r = tk.radio;
   if (r && r.mine && Math.abs(tk.freq - r.target) < 0.001){ tk.hits++; radioStat(`Correct: tuned to ${freqStr(r.target)}`); tone(1320, 0.15); endCall(); }
   else if (r && r.mine){ tk.falseAlarms++; radioStat("Wrong frequency: try again", "bad"); tone(150, 0.3, "sawtooth", 0.08); }
@@ -2527,6 +2585,7 @@ function tryConfirm(){
 function nudgeFreq(d){ if (!tk || !tk.running) return; tk.freq = Math.min(136.975, Math.max(118, Math.round((tk.freq + d)*40)/40)); $("tkFreq").textContent = freqStr(tk.freq); tone(500, 0.03, "sine", 0.03); }
 $("tkStartCalm").onclick = () => startTask("calm");
 $("tkStartStress").onclick = () => startTask("stress");
+$("tkPractice").onclick = () => startTask("practice");
 $("tkQuit").onclick = () => finishTask(true);
 $("tkClose").onclick = closeTask;
 $("tkConfirm").onclick = tryConfirm;
