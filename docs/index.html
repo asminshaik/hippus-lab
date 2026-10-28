@@ -261,6 +261,34 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
 .clfbar .chance{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--warn)}
 .clfrow .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
 .clfverdict{font-family:var(--f-display);font-size:20px;line-height:1.3;margin:10px 0 6px;text-wrap:balance}
+/* My eye: plain-language intro, method choice, and only the instructions for the chosen method */
+.flow{list-style:none;margin:10px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.flow li{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:3px;align-content:start;font-size:13.5px}
+.flow li b{font-size:15px}
+.flow li span:last-child{color:var(--muted)}
+.fnum{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
+.qhead{font-size:16px;font-weight:700;margin:0}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.modes{grid-template-columns:minmax(0,1fr)}}
+.modecard{text-align:left;display:grid;gap:4px;background:var(--surface-2);border:2px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.modecard b{font-size:15.5px;color:var(--ink)}
+.modecard[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.modecard:disabled{opacity:.5;cursor:not-allowed}
+ol.simple{margin:0;padding-left:22px;display:grid;gap:5px;font-size:14.5px;max-width:75ch}
+#view-me:not(.mode-camera):not(.mode-phone) .needmode{display:none}
+#view-me:not(.mode-camera) .only-camera{display:none}
+#view-me:not(.mode-phone) .only-phone{display:none}
+.needmode{display:grid;gap:12px}
+details.adv{font-size:13.5px}
+details.adv summary{cursor:pointer;color:var(--accent)}
+details.adv[open]{display:grid;gap:6px}
+.simpleres{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;margin:8px 0 12px}
+@media (max-width:620px){.simpleres{grid-template-columns:minmax(0,1fr)}}
+.pupils{display:flex;gap:14px}
+.pupils figure{margin:0;display:grid;justify-items:center;gap:4px;text-align:center;font-size:13px;color:var(--muted)}
+.pupils figure b{color:var(--ink);font-family:var(--f-mono);font-size:15px}
+.pupils canvas{width:120px;height:120px}
 /* step 2: simple job cards with mini pictures */
 .wbody .lead{font-size:15.5px;max-width:75ch}
 .jobs{display:grid;gap:12px}
@@ -369,7 +397,7 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <button role="tab" id="tab-about" aria-selected="false" data-view="about"><span class="hide-sm">Data &amp; m</span><span class="show-sm">M</span>ethod</button>
     <button role="tab" id="tab-gloss" aria-selected="false" data-view="gloss">Glossary</button>
   </nav>
-  <div class="who"><label for="subject">Participant</label> <select id="subject"></select> <span class="pinfo" id="pinfo"></span></div>
+  <div class="who" id="whoBar"><label for="subject">Participant</label> <select id="subject"></select> <span class="pinfo" id="pinfo"></span></div>
   <button class="helpbtn" id="tourBtn" title="Show the guided tour">? Tour</button>
 </header>
 
@@ -620,43 +648,77 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
 <!-- ============ MY EYE ============ -->
 <main id="view-me" class="page" hidden>
   <section class="card">
-    <h2>Measure your own eye</h2>
-    <p>Repeat the study on yourself in four steps, about 10 minutes in all. You record your eye twice, once calm and once during a short version of the study's stress task. The page then measures your pupil's wave in both videos and compares the change with the study's participants.</p>
-    <p class="hint">You need this page on a laptop or tablet, a phone to film your eye, and sound turned on. This is an educational experiment, not a medical test.</p>
+    <h2>Does stress change your eye?</h2>
+    <p class="lead">Find out in about 10 minutes. Your <b>pupil</b>, the black circle in the middle of your eye, is never perfectly still. It gently grows and shrinks every few seconds, like slow breathing. In the study, when people were stressed, their pupils got a little <b>bigger</b> and this wobble got <b>taller</b>. Here you can check whether yours does the same.</p>
+    <ol class="flow">
+      <li><span class="fnum">1</span><b>Relax</b><span>Watch a calm screen for 1 minute while your eye is filmed.</span></li>
+      <li><span class="fnum">2</span><b>Play</b><span>Play a quick, rushed flight game while your eye is filmed again.</span></li>
+      <li><span class="fnum">3</span><b>Measure</b><span>The page finds your pupil in both videos and measures it.</span></li>
+      <li><span class="fnum">4</span><b>Compare</b><span>See whether stress made your pupil bigger, and how you compare with the study.</span></li>
+    </ol>
+    <p class="hint">Turn your sound on (the game talks). This is a science experiment, not a medical test.</p>
     <p class="privacy"><b>Your privacy:</b> nothing you record or measure here is saved or sent anywhere. Videos and results stay inside this browser tab and are erased when you close or reload the page. This project does not collect any data from visitors.</p>
   </section>
 
   <ol class="wizard">
     <!-- STEP 1 -->
     <li class="wstep" id="ws1">
-      <div class="whead"><span class="wnum">1</span><div><h3>Record your calm video</h3><span class="wstate" id="ws1State">Start here</span></div></div>
+      <div class="whead"><span class="wnum">1</span><div><h3>Film your calm eye</h3><span class="wstate" id="ws1State">Start here</span></div></div>
       <div class="wbody">
-        <div class="howto">
-          <div><b>Get set up</b><ul>
-            <li>Sit somewhere with steady light. Stay in this same spot for both videos: the same light is your <span class="term" data-g="Control variable">control</span>.</li>
-            <li>Open your phone's camera in video mode. Hold it about 10–15 cm from one eye, so the colored iris fills a good part of the picture.</li>
-            <li>Turn the laptop so you can see its screen with your other eye.</li>
-          </ul></div>
-          <div><b>Record</b><ul>
-            <li>Press <b>Start calm screen</b>. During the 5-second countdown, start recording on your phone.</li>
-            <li>For 60 seconds, just watch the screen and breathe slowly. Nothing to do.</li>
-            <li>When it says done, stop recording, then upload the video below.</li>
-          </ul></div>
+        <p class="qhead">First, how will you film your eye?</p>
+        <div class="modes" role="radiogroup" aria-label="How to film your eye">
+          <button class="modecard" id="modeCam" role="radio" aria-checked="false"><b>This computer's camera</b><span>Easiest. No phone needed: the page finds your eye and zooms in on it by itself.</span></button>
+          <button class="modecard" id="modePhone" role="radio" aria-checked="false"><b>My phone</b><span>Sharpest picture. You hold your phone close to one eye while you watch this screen.</span></button>
         </div>
-        <div class="livebox" id="liveBox" hidden>
-          <p><b>One-device option:</b> record with this device's own camera instead of a phone. The page finds your eye, zooms in on it, and films only that eye automatically during the calm screen and the stress task. Nothing else in the room is recorded. Sit about 25–30 cm from the camera with light on your face. It is less precise than a phone held close to your eye.</p>
-          <div class="rowtools"><button class="btn" id="liveOn">Use this device's camera</button><span class="hint" id="liveMsg" role="status"></span></div>
-          <canvas id="zoomCv" hidden aria-label="Zoomed camera view of your eye"></canvas>
-          <span class="hint" id="zoomState" role="status"></span>
+
+        <div class="needmode only-camera">
+          <div class="livebox" id="liveBox">
+            <ol class="simple">
+              <li>Sit about an arm's length from the screen, with light on your face.</li>
+              <li>Press <b>Turn camera on</b> and allow the camera.</li>
+              <li>Move closer until the box shows a big close-up of your eye and says <b>Eye found</b>.</li>
+            </ol>
+            <div class="rowtools"><button class="btn" id="liveOn">Turn camera on</button><span class="hint" id="liveMsg" role="status"></span></div>
+            <canvas id="zoomCv" hidden aria-label="Zoomed camera view of your eye"></canvas>
+            <span class="hint" id="zoomState" role="status"></span>
+            <p class="hint">Only the zoomed-in eye is filmed, never the room, and it stays in this browser tab.</p>
+          </div>
         </div>
-        <div class="rowtools"><button class="btn primary" id="tkStartCalm">Start calm screen (60 s)</button><span class="hint" id="calmMsg"></span></div>
-        <div class="meslot">
-          <div class="mehead"><b>Upload your calm video</b><label class="btn primary mefile">Choose video<input type="file" id="meFile-calm" accept="video/*" hidden></label></div>
-          <div class="mestage" id="meStage-calm"><canvas id="meCv-calm" aria-label="Calm video frame. Click the center of the pupil."></canvas></div>
-          <div class="ctl"><label for="meIris-calm"><span>Iris circle size</span><output id="meIrisOut-calm">–</output></label><input type="range" id="meIris-calm" min="3" max="100" step="0.5" value="55" disabled></div>
-          <div class="rowtools"><button class="btn primary" id="meGo-calm" disabled>Scan this video</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-calm"></div></div></div>
-          <label class="check"><input type="checkbox" class="meEnh" checked> Brighten and sharpen the video while scanning (recommended for webcams and dark eyes)</label>
-          <p class="hint" id="meStat-calm" role="status">Choose or drop a video to start.</p>
+        <div class="needmode only-phone">
+          <ol class="simple">
+            <li>Open your phone's camera in <b>video</b> mode.</li>
+            <li>Hold it about a hand's width (10–15 cm) from one eye, so the colored part of your eye fills much of the picture.</li>
+            <li>Keep this screen in view with your other eye. Sit somewhere the light won't change: use the same spot for both videos.</li>
+          </ol>
+        </div>
+
+        <div class="needmode">
+          <div class="readybox">
+            <b>Now film your calm eye</b>
+            <ol>
+              <li>Press <b>Start calm screen</b>. <span class="only-phone">During the 5-second countdown, start recording on your phone.</span><span class="only-camera">Filming starts by itself after a 5-second countdown.</span></li>
+              <li>For 1 minute, just watch the screen and breathe slowly. Nothing to do.</li>
+              <li class="only-phone">When it says done, stop recording.</li>
+            </ol>
+            <button class="btn primary" id="tkStartCalm">Start calm screen (1 minute)</button>
+            <span class="hint" id="calmMsg"></span>
+          </div>
+
+          <div class="meslot">
+            <div class="mehead"><b>Measure your calm pupil</b><label class="btn mefile only-phone">Choose video<input type="file" id="meFile-calm" accept="video/*" hidden></label></div>
+            <ol class="simple only-phone">
+              <li>Press <b>Choose video</b> and pick the video you just recorded.</li>
+              <li>Click the <b>black center</b> of your eye in the picture.</li>
+              <li>Move the slider until the dashed circle sits on the edge of the <b>colored ring</b> (the iris).</li>
+              <li>Press <b>Measure my pupil</b>.</li>
+            </ol>
+            <p class="hint only-camera">After the calm screen, your video appears here with your eye already marked. Just press <b>Measure my pupil</b>.</p>
+            <div class="mestage" id="meStage-calm"><canvas id="meCv-calm" aria-label="Calm video frame. Click the center of the pupil."></canvas></div>
+            <div class="ctl"><label for="meIris-calm"><span>Size of the dashed circle (match the colored ring)</span><output id="meIrisOut-calm">–</output></label><input type="range" id="meIris-calm" min="3" max="100" step="0.5" value="55" disabled></div>
+            <div class="rowtools"><button class="btn primary" id="meGo-calm" disabled>Measure my pupil</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-calm"></div></div></div>
+            <p class="hint" id="meStat-calm" role="status">Your video will show up here.</p>
+            <details class="adv"><summary>Measuring didn't work?</summary><label class="check"><input type="checkbox" class="meEnh" checked> Brighten and sharpen the video while measuring (keep on for webcams and dark eyes)</label><p class="hint">Also try: re-click the center of the pupil, match the circle to the colored ring more closely, or film again in brighter, steadier light.</p></details>
+          </div>
         </div>
       </div>
       <p class="wlock">Locked</p>
@@ -703,9 +765,10 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
         <div class="readybox">
           <b>When you're ready:</b>
           <ol>
-            <li>Get your phone ready to record your eye (or use this device's camera from step 1).</li>
-            <li>Press <b>Start</b>. During the 5-second countdown, <b>start recording</b>.</li>
-            <li>Play until the timer ends. Then stop recording.</li>
+            <li class="only-phone">Get your phone ready to film your eye, the same way as step 1.</li>
+            <li class="only-camera">Check the camera box in step 1 still says <b>Eye found</b>.</li>
+            <li>Press <b>Start</b>. <span class="only-phone">During the 5-second countdown, <b>start recording</b>.</span><span class="only-camera">Filming starts by itself after the countdown.</span></li>
+            <li>Play until the timer ends.<span class="only-phone"> Then stop recording.</span></li>
           </ol>
           <div class="rowtools">
             <label class="check"><input type="checkbox" id="tkReadOk"> My camera is ready</label>
@@ -720,16 +783,22 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
 
     <!-- STEP 3 -->
     <li class="wstep" id="ws3">
-      <div class="whead"><span class="wnum">3</span><div><h3>Upload your stressed video</h3><span class="wstate" id="ws3State">Unlocks after step 2</span></div></div>
+      <div class="whead"><span class="wnum">3</span><div><h3>Measure your stressed pupil</h3><span class="wstate" id="ws3State">Unlocks after step 2</span></div></div>
       <div class="wbody">
-        <p id="ws3Msg">Upload the video you recorded during the stress task, then mark the pupil and scan it the same way as step 1.</p>
+        <p id="ws3Msg">Measure the video from the game, the same way as step 1.</p>
         <div class="meslot">
-          <div class="mehead"><b>Upload your stressed video</b><label class="btn primary mefile">Choose video<input type="file" id="meFile-stress" accept="video/*" hidden></label></div>
+          <div class="mehead"><b>Measure your stressed pupil</b><label class="btn mefile only-phone">Choose video<input type="file" id="meFile-stress" accept="video/*" hidden></label></div>
+          <ol class="simple only-phone">
+            <li>Press <b>Choose video</b> and pick the video from the game.</li>
+            <li>Click the <b>black center</b> of your eye, and match the dashed circle to the <b>colored ring</b>.</li>
+            <li>Press <b>Measure my pupil</b>.</li>
+          </ol>
+          <p class="hint only-camera">Your game video is already here with your eye marked. Just press <b>Measure my pupil</b>.</p>
           <div class="mestage" id="meStage-stress"><canvas id="meCv-stress" aria-label="Stressed video frame. Click the center of the pupil."></canvas></div>
-          <div class="ctl"><label for="meIris-stress"><span>Iris circle size</span><output id="meIrisOut-stress">–</output></label><input type="range" id="meIris-stress" min="3" max="100" step="0.5" value="55" disabled></div>
-          <div class="rowtools"><button class="btn primary" id="meGo-stress" disabled>Scan this video</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-stress"></div></div></div>
-          <label class="check"><input type="checkbox" class="meEnh" checked> Brighten and sharpen the video while scanning (recommended for webcams and dark eyes)</label>
-          <p class="hint" id="meStat-stress" role="status">Choose or drop a video to start.</p>
+          <div class="ctl"><label for="meIris-stress"><span>Size of the dashed circle (match the colored ring)</span><output id="meIrisOut-stress">–</output></label><input type="range" id="meIris-stress" min="3" max="100" step="0.5" value="55" disabled></div>
+          <div class="rowtools"><button class="btn primary" id="meGo-stress" disabled>Measure my pupil</button><div class="r2bar" style="flex:1;min-width:120px"><div id="meProg-stress"></div></div></div>
+          <p class="hint" id="meStat-stress" role="status">Your video will show up here.</p>
+          <details class="adv"><summary>Measuring didn't work?</summary><label class="check"><input type="checkbox" class="meEnh" checked> Brighten and sharpen the video while measuring (keep on for webcams and dark eyes)</label><p class="hint">Also try: re-click the center of the pupil, match the circle to the colored ring more closely, or film again in brighter, steadier light.</p></details>
         </div>
       </div>
       <p class="wlock">Finish step 2 first.</p>
@@ -744,8 +813,19 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <span class="eyebrow" id="meEyebrow">Example result</span>
     <h2 id="meTitle">Loading study data…</h2>
     <p id="meNote" class="hint"></p>
-    <p class="answer" id="meVerdict"></p>
-    <p id="meWaveTxt"></p>
+    <div class="simpleres">
+      <div class="pupils" aria-label="Your calm and stressed pupil sizes, drawn to scale">
+        <figure><canvas id="mePupCalm" width="160" height="160"></canvas><figcaption>Calm<br><b id="mePupCalmT">–</b></figcaption></figure>
+        <figure><canvas id="mePupStress" width="160" height="160"></canvas><figcaption>Stressed<br><b id="mePupStressT">–</b></figcaption></figure>
+      </div>
+      <div>
+        <p class="answer" id="meVerdict"></p>
+        <p id="meMeaning"></p>
+        <p id="meWaveTxt"></p>
+        <p class="hint">The circles are drawn to scale: the colored ring is your iris (about 11.7 mm across) and the black circle is your pupil.</p>
+      </div>
+    </div>
+    <details class="mathbox" id="meDetails"><summary>Details for the curious: all the numbers, your pupil's waves and how you compare</summary><div style="padding:0 14px 14px">
     <div class="kfacts" id="meFacts"></div>
     <div class="mewaves">
       <div><h3 id="meWaveCalmT">Calm</h3><canvas id="meWave-calm" aria-label="Calm hippus wave with fitted sine"></canvas><p class="mono hint" id="meEq-calm"></p></div>
@@ -756,6 +836,7 @@ details.mathbox>.mathsteps{padding:0 14px 14px}
     <canvas id="meStrips" aria-label="Your change compared with each study participant"></canvas>
     <p class="hint" id="meQuality"></p>
     <details class="mathbox"><summary>Show the math: how these numbers were calculated</summary><div class="mathsteps" id="meMath"></div></details>
+    </div></details>
   </section>
       </div>
       <div class="wlock"><p style="margin:0 0 8px">Your result appears here after both videos are scanned.</p><button class="btn" id="meShowEx">Preview an example result from the study</button></div>
@@ -1388,6 +1469,7 @@ function showView(v){
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.view === v));
   $("view-sim").hidden = v !== "sim"; $("view-res").hidden = v !== "res"; $("view-about").hidden = v !== "about"; $("view-gloss").hidden = v !== "gloss"; $("view-me").hidden = v !== "me";
   if (v === "me") requestAnimationFrame(initMe);
+  $("whoBar").hidden = v !== "sim";   // the participant picker only affects the Simulate tab
   try { history.replaceState(null, "", "#" + VIEW_TOKENS[v]); } catch {}
   if (v === "res") { rDirty = true; requestAnimationFrame(renderResults); }
   if (v === "sim") layout();
@@ -1546,8 +1628,11 @@ const DEC = {B:2, Bc:2, A:3, diam:2, qa:2, rate:1, r2:2};
 function stressVal(m, key){ const a = m[2][key], b = m[4][key]; return isFinite(a) && isFinite(b) ? (a+b)/2 : isFinite(a) ? a : b; }
 // Fitting all participants takes a moment, so it runs in small slices between frames.
 let rReady = false, rBusy = false;
+// Several parts of the page may ask at once (Results, My eye); every caller waits on the same single run.
+const rWaiting = [];
 function ensureMetrics(done){
   if (rReady) return done();
+  rWaiting.push(done);
   if (rBusy) return; rBusy = true;
   let k = 0;
   const step = () => {
@@ -1556,7 +1641,7 @@ function ensureMetrics(done){
     $("rProgText").textContent = `Fitting waves for participant ${k} of ${subjects.length}…`;
     $("rProgFill").style.width = (k/subjects.length*100) + "%";
     if (k < subjects.length) setTimeout(step, 0);
-    else { rReady = true; rBusy = false; $("rProgress").hidden = true; done(); }
+    else { rReady = true; rBusy = false; $("rProgress").hidden = true; rWaiting.splice(0).forEach(fn => fn()); }
   };
   step();
 }
@@ -2038,6 +2123,8 @@ for (const id of ["ws1", "ws2", "ws3"]) $(id).querySelector(".whead").addEventLi
 });
 $("tkReadOk").onchange = updateWizard;
 $("tkSkip").onclick = () => { wz.stressDone = true; $("ws3Msg").textContent = "Upload your stressed video, then mark the pupil and scan it the same way as step 1."; updateWizard(); goStep("ws3"); requestAnimationFrame(() => drawSlot(ME.stress)); };
+// The wave charts live inside the closed "Details" section; draw them once it's opened and has a size.
+$("meDetails").addEventListener("toggle", () => { if ($("meDetails").open && meLast) requestAnimationFrame(() => renderMe(meLast)); });
 $("meShowEx").onclick = () => {
   $("meShowEx").disabled = true; $("meShowEx").textContent = "Loading the study's data…";
   ensureMetrics(() => { $("ws4").classList.add("preview"); $("meResult").hidden = false; requestAnimationFrame(renderExample); });
@@ -2056,7 +2143,7 @@ function setupSlot(s){
     const r = s.cv.getBoundingClientRect(), x = (e.clientX - r.left - s.tf.ox)/s.tf.k, y = (e.clientY - r.top - s.tf.oy)/s.tf.k;
     if (x < 0 || y < 0 || x > v.videoWidth || y > v.videoHeight) return;
     s.cx = x; s.cy = y; s.placed = true; s.pupilR = null; drawSlot(s);
-    $("meGo-"+k).disabled = false; setStat(s, "Now size the dashed circle to the outer edge of the colored iris, then scan.");
+    $("meGo-"+k).disabled = false; setStat(s, "Now move the slider until the dashed circle sits on the edge of the colored ring, then press Measure my pupil.");
   });
   $("meIris-"+k).oninput = e => { if (!s.ready) return; s.R = +e.target.value/100 * Math.min(v.videoWidth, v.videoHeight)/2; $("meIrisOut-"+k).textContent = Math.round(s.R*2) + " px"; drawSlot(s); };
   $("meGo-"+k).onclick = () => scanSlot(s);
@@ -2081,7 +2168,7 @@ function loadVideo(s, file, auto){
       s.cx = auto.cx*v.videoWidth; s.cy = auto.cy*v.videoHeight;
       sl.value = Math.max(+sl.min, Math.min(+sl.max, auto.r*v.videoWidth/half*100));
       sl.dispatchEvent(new Event("input")); s.placed = true; $("meGo-"+k).disabled = false; drawSlot(s);
-      setStat(s, "Your eye was found and zoomed in automatically. Check that the dashed circle sits on the iris edge, then press Scan this video.", "ok");
+      setStat(s, "Your eye was found and zoomed in automatically. Check that the dashed circle sits on the edge of the colored ring, then press Measure my pupil.", "ok");
       return;
     }
     sl.dispatchEvent(new Event("input"));
@@ -2196,7 +2283,7 @@ async function scanSlot(s){
     s.cx = cx; s.cy = cy;
     if (++frames % 3 === 0) drawSlot(s);
   };
-  const prog = f => { $("meProg-"+k).style.width = (f*100) + "%"; setStat(s, `Scanning… ${Math.round(f*100)}%`); };
+  const prog = f => { $("meProg-"+k).style.width = (f*100) + "%"; setStat(s, `Measuring… ${Math.round(f*100)}%`); };
   await seekTo(v, 0);
   let mode = "seek";
   if ("requestVideoFrameCallback" in HTMLVideoElement.prototype){
@@ -2224,7 +2311,7 @@ async function scanSlot(s){
   if (valid < 0.3){ s.res = null; setStat(s, `The pupil was found in only ${Math.round(valid*100)}% of frames. Re-center the cross on the pupil, match the circle to the iris, and try a brighter, steadier video.`, "bad"); return; }
   const S = prep({id: "me-"+k, markers: [], pupil: series});
   s.res = {...measure(S, 0, S.n), S, range: [0, S.n], valid, secs: N/FS, irisPx: 2*R};
-  setStat(s, `Done: ${s.res.secs.toFixed(0)} s scanned, pupil found in ${Math.round(valid*100)}% of frames.`, valid < 0.6 ? "bad" : "ok");
+  setStat(s, `Done: measured ${s.res.secs.toFixed(0)} seconds of video. Your pupil was found in ${Math.round(valid*100)}% of the frames.`, valid < 0.6 ? "bad" : "ok");
   updateWizard();
   if (ME.calm.res && ME.stress.res){
     $("ws4").classList.remove("preview"); $("meResult").hidden = false; goStep("ws4");
@@ -2254,21 +2341,33 @@ function renderMe(pair){
   const {calm: c, stress: s, example} = pair;
   $("meEyebrow").textContent = example ? "Example result" : "Your result";
   $("meTitle").textContent = example ? `What a result looks like: ${example}, Working vs. Stress 1` : "Calm vs. stressed: your eye";
-  $("meNote").textContent = example ? `This example uses one minute of ${example}'s Working baseline and one minute of their Stress 1 phase from the dataset. Scan your two videos above to replace it with your own result.` : "";
+  $("meNote").textContent = example ? `This example uses one minute of ${example}'s recording while working calmly and one minute during stress, from the study. Measure your two videos above to see your own result.` : "";
   $("meWaveCalmT").textContent = example ? "Calm (Working baseline)" : "Calm video"; $("meWaveStressT").textContent = example ? "Stressed (Stress 1)" : "Stressed video";
   const pop = subjects.map(S => { const m = metricsOf(S), w = m[REF]; return {diam: stressVal(m,"diam") - w.diam, A: stressVal(m,"A") - w.A, B: stressVal(m,"B") - w.B}; });
   const you = {diam: s.diam - c.diam, A: s.A - c.A, B: s.B - c.B};
   const pct = key => { const v = pop.map(p => p[key]).filter(isFinite); return v.length && isFinite(you[key]) ? Math.round(100 * v.filter(x => x < you[key]).length / v.length) : NaN; };
   const who = example ? "the pupil" : "your pupil", Who = example ? "The pupil" : "Your pupil";
   const more = key => { const p = pct(key); return p >= 100 ? "more than every study participant" : p <= 0 ? "less than every study participant" : `more than ${p}% of study participants`; };
-  let verdict;
-  if (!isFinite(you.diam)) verdict = "Not enough clean frames to compare the two videos.";
-  else if (you.diam > 0.02 && pct("diam") >= 50) verdict = `Clear stress response: ${who} widened by ${you.diam.toFixed(2)} mm, ${more("diam")}.`;
-  else if (you.diam > 0.02) verdict = `Mild stress response: ${who} widened by ${you.diam.toFixed(2)} mm, ${more("diam")}.`;
-  else verdict = `No stress widening detected: ${who} did not get larger in the stressed recording. A change in light or a task that felt easy are the usual reasons.`;
-  $("meVerdict").textContent = verdict;
-  const hyp = you.A > 0 && you.B > 0;
-  $("meWaveTxt").textContent = isFinite(you.A) && isFinite(you.B) ? `${Who}'s hippus waves got ${you.A >= 0 ? "taller" : "smaller"} (A ${sgn(you.A,3)} mm) and ${you.B >= 0 ? "faster" : "slower"} (B ${sgn(you.B,2)} rad/s). ${hyp ? "That is the pattern the project's hypothesis predicts." : "The hypothesis predicts both would rise, so this is not the predicted pattern."}` : "The wave fit needs at least 20 seconds of clean pupil signal in each recording.";
+  // Plain-language answer first: did the pupil get bigger, what does that mean, and what did the wobble do?
+  const popD = pop.map(p => p.diam).filter(isFinite), bigger = popD.filter(v => v > 0).length, pctCh = isFinite(you.diam) ? you.diam/c.diam*100 : NaN;
+  let verdict, meaning;
+  if (!isFinite(you.diam)){ verdict = "The page couldn't see the pupil clearly enough in one of the videos to compare them."; meaning = "Try filming again in brighter, steadier light."; }
+  else if (you.diam > 0.02){
+    verdict = `${Who} got bigger when ${example ? "they were" : "you were"} stressed: +${you.diam.toFixed(2)} mm (${pctCh.toFixed(0)}% bigger).`;
+    const pp = pct("diam");
+    meaning = `That's the usual reaction to stress: in the study, ${bigger} of ${popD.length} people's pupils got bigger too. ${example ? "This" : "Your"} change was ${pp >= 100 ? "bigger than all of theirs" : `bigger than ${pp}% of theirs`}.`;
+  } else if (you.diam >= -0.02){
+    verdict = `${Who} stayed about the same size (${sgn(you.diam,2)} mm).`;
+    meaning = `In the study, ${bigger} of ${popD.length} people's pupils got bigger under stress. Small or no change can happen if the game didn't feel stressful, or if the light changed between the two videos.`;
+  } else {
+    verdict = `${Who} got smaller when ${example ? "they were" : "you were"} stressed: ${sgn(you.diam,2)} mm.`;
+    meaning = `That's unusual: only ${popD.length - bigger} of ${popD.length} people in the study had this. The most common reason is that the room or screen was brighter during the second video, since light shrinks the pupil much more than stress grows it.`;
+  }
+  $("meVerdict").textContent = verdict; $("meMeaning").textContent = meaning;
+  const hyp = you.A > 0 && you.B > 0, aPct = isFinite(you.A) ? Math.abs(you.A/c.A*100) : NaN;
+  $("meWaveTxt").innerHTML = isFinite(you.A) && isFinite(you.B) ? `<b>The wobble:</b> ${example ? "the" : "your"} pupil's gentle grow-and-shrink got ${Math.abs(aPct) < 5 ? "about the same height" : you.A > 0 ? `${aPct.toFixed(0)}% taller` : `${aPct.toFixed(0)}% smaller`} and ${you.B > 0 ? "a little faster" : "a little slower"}. ${hyp ? "That matches the project's prediction (taller and faster)." : "The project predicted taller and faster; in the study, the wobble usually got taller but not faster."}` : "There wasn't enough clean video to measure the wobble. Each video needs at least 20 seconds where the pupil is clearly visible.";
+  drawPupilPic($("mePupCalm"), c.diam); drawPupilPic($("mePupStress"), s.diam);
+  $("mePupCalmT").textContent = isFinite(c.diam) ? c.diam.toFixed(2) + " mm" : "–"; $("mePupStressT").textContent = isFinite(s.diam) ? s.diam.toFixed(2) + " mm" : "–";
   const f = (lab, a, b, u, dec, key) => `<div class="kfact"><span class="lab">${lab}</span><span class="num">${isFinite(a) ? a.toFixed(dec) : "–"} → ${isFinite(b) ? b.toFixed(dec) : "–"} ${u}</span><span class="sub">${isFinite(a) && isFinite(b) ? `change ${sgn(b-a,dec)}${key && isFinite(pct(key)) ? ` · ${pct(key) >= 100 ? "above every participant" : pct(key) <= 0 ? "below every participant" : `above ${pct(key)}% of participants`}` : ""}` : "not enough data"}</span></div>`;
   $("meFacts").innerHTML = f("Pupil size", c.diam, s.diam, "mm", 2, "diam") + f("Amplitude A", c.A, s.A, "mm", 3, "A") + f("Wave constant B", c.B, s.B, "rad/s", 2, "B") + f("Constrictions / min", c.rate, s.rate, "", 1, null) +
     (!example && (ratings.calm || ratings.stress) ? `<div class="kfact"><span class="lab">How stressed you felt</span><span class="num">${ratings.calm ?? "–"} → ${ratings.stress ?? "–"} / 10</span><span class="sub">your own rating after each task</span></div>` : "");
@@ -2291,6 +2390,16 @@ function renderMeMath(c, s, you, pop, example){
   <div class="mstep"><b>2 · Fit y = A·sin(B(t − C)) + D to each recording</b>Same method as the study: remove the straight-line drift, try every speed from 0.033 to 1.00 waves per second (at least two full waves must fit in the recording), keep the best, then solve for the height. The whole-recording fit is shown here; the numbers above use the median of 60-second windows when the recording is long enough.<span class="eqn">${wave("Calm", c)}</span><span class="eqn">${wave("Stressed", s)}</span></div>
   <div class="mstep"><b>3 · How much each number changed</b><span class="eqn">${chg("Pupil size", c.diam, s.diam, "mm", 2)}</span><span class="eqn">${chg("Amplitude A", c.A, s.A, "mm", 3)}</span><span class="eqn">${chg("Wave constant B", c.B, s.B, "rad/s", 2)}</span></div>
   <div class="mstep stat"><b>4 · Ranking against the study</b>Each study participant also has a change, from Working baseline to Stress. Count how many are smaller than ${example ? "this one" : "yours"}:<span class="eqn">${below} of ${vals.length} participants changed less → ${below} ÷ ${vals.length} × 100 = <i>${vals.length ? Math.round(below/vals.length*100) : 0}%</i></span></div>`;
+}
+// To-scale eye picture for the plain result: the iris is 11.7 mm across, the pupil is drawn at its measured size.
+function drawPupilPic(cv, mm){
+  const g = cv.getContext("2d"), W = cv.width, c = W/2, irisR = W*0.44, k = irisR*2/IRIS_MM;
+  g.clearRect(0, 0, W, W);
+  const gr = g.createRadialGradient(c, c, irisR*0.2, c, c, irisR);
+  gr.addColorStop(0, "#7a6a3e"); gr.addColorStop(0.55, "#4d7a86"); gr.addColorStop(1, "#24414b");
+  g.fillStyle = gr; g.beginPath(); g.arc(c, c, irisR, 0, 7); g.fill();
+  if (isFinite(mm)){ g.fillStyle = "#050607"; g.beginPath(); g.arc(c, c, mm/2*k, 0, 7); g.fill(); }
+  g.fillStyle = "rgba(255,255,255,.8)"; g.beginPath(); g.arc(c - irisR*0.3, c - irisR*0.32, irisR*0.08, 0, 7); g.fill();
 }
 function drawMeWave(cv, r, col){
   sizeCanvas(cv);
@@ -2345,7 +2454,20 @@ const ZOOM = {W: 640, H: 480, IRIS_FRAC: 1/8};    // iris radius = 1/8 of the zo
 const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 const live = {stream: null, rec: null, chunks: [], raw: null, cv: null, out: null, finder: null, found: false, eye: null, sm: null, lastSeen: 0, loop: 0};
-if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) $("liveBox").hidden = false;
+// Step 1 asks how to film first; the page then shows only that method's instructions (CSS classes on #view-me).
+let meMode = null;
+const camOK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+if (!camOK){ $("modeCam").disabled = true; $("modeCam").querySelector("span").textContent = "Not available in this browser. Use your phone instead."; }
+function setMode(m){
+  meMode = m; const v = $("view-me");
+  v.classList.toggle("mode-camera", m === "camera"); v.classList.toggle("mode-phone", m === "phone");
+  $("modeCam").setAttribute("aria-checked", m === "camera"); $("modePhone").setAttribute("aria-checked", m === "phone");
+  if (m === "camera" && !live.stream) $("liveOn").click();
+  if (m === "phone" && live.stream) stopLive();
+  requestAnimationFrame(() => { for (const s of Object.values(ME)) if (s.cv && !s.busy && s.cv.offsetParent) drawSlot(s); });
+}
+$("modeCam").onclick = () => setMode("camera");
+$("modePhone").onclick = () => setMode("phone");
 $("liveOn").onclick = async () => {
   if (live.stream) return stopLive();
   $("liveMsg").textContent = "Asking for camera permission…";
@@ -2428,7 +2550,7 @@ function stopLive(){
   if (live.out) live.out.getTracks().forEach(t => t.stop());
   live.stream = live.out = null; live.sm = live.eye = null; live.found = false;
   $("zoomCv").hidden = true; $("tkCam").hidden = true; $("zoomState").textContent = "";
-  $("liveOn").textContent = "Use this device's camera"; $("liveMsg").textContent = "Camera off.";
+  $("liveOn").textContent = "Turn camera on"; $("liveMsg").textContent = "Camera off.";
 }
 function liveStart(){
   if (!live.stream) return;
